@@ -860,31 +860,100 @@ document.addEventListener('DOMContentLoaded', () => {
     const installButton = document.getElementById('install-button');
     const installBanner = document.getElementById('install-banner');
     
+    // Function to check if app is installable
+    function checkInstallability() {
+        // Check if already installed
+        if (window.matchMedia('(display-mode: standalone)').matches || 
+            window.navigator.standalone === true) {
+            console.log('App is already installed');
+            return false;
+        }
+        
+        // Check if recently dismissed
+        const dismissedTime = localStorage.getItem('installPromptDismissed');
+        if (dismissedTime) {
+            const daysSinceDismissal = (Date.now() - parseInt(dismissedTime)) / (1000 * 60 * 60 * 24);
+            if (daysSinceDismissal < 7) {
+                console.log('Install prompt was recently dismissed');
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    // Function to show install banner
+    function showInstallBanner(isMobile = false) {
+        if (!checkInstallability()) return;
+        
+        if (installBanner) {
+            installBanner.style.display = 'flex';
+            
+            // Update text for mobile Safari
+            if (isMobile && /iPhone|iPad|iPod|Safari/i.test(navigator.userAgent)) {
+                const bannerText = installBanner.querySelector('.install-banner-text p');
+                if (bannerText) {
+                    bannerText.textContent = 'Add to Home Screen for the best experience';
+                }
+                
+                const installBtn = installBanner.querySelector('#install-button');
+                if (installBtn) {
+                    installBtn.textContent = 'Add to Home Screen';
+                }
+            }
+        }
+    }
+    
+    // Listen for beforeinstallprompt (Chrome, Edge)
     window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('beforeinstallprompt event fired');
         // Prevent the mini-infobar from appearing on mobile
         e.preventDefault();
         // Stash the event so it can be triggered later
         deferredPrompt = e;
         // Show the install banner
-        if (installBanner) {
-            installBanner.style.display = 'flex';
-        }
+        showInstallBanner(false);
     });
+    
+    // For mobile browsers that don't support beforeinstallprompt (Safari)
+    function checkMobileInstall() {
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                            window.navigator.standalone === true;
+        const isInWebAppiOS = window.navigator.standalone !== undefined;
+        
+        console.log('Mobile check:', { isMobile, isStandalone, isInWebAppiOS });
+        
+        if (isMobile && !isStandalone && checkInstallability()) {
+            // Show banner after a delay to ensure user engagement
+            setTimeout(() => {
+                showInstallBanner(true);
+            }, 3000);
+        }
+    }
+    
+    // Check for mobile install after page load
+    setTimeout(checkMobileInstall, 1000);
     
     // Handle install button click
     if (installButton) {
         installButton.addEventListener('click', async () => {
             if (deferredPrompt) {
-                // Show the install prompt
+                // Chrome/Edge: Use the native prompt
                 deferredPrompt.prompt();
-                // Wait for the user to respond to the prompt
                 const { outcome } = await deferredPrompt.userChoice;
                 console.log(`User response to the install prompt: ${outcome}`);
-                // Clear the deferredPrompt variable
                 deferredPrompt = null;
-                // Hide the install banner
                 if (installBanner) {
                     installBanner.style.display = 'none';
+                }
+            } else {
+                // Safari/Mobile: Show instructions
+                const isSafari = /Safari/i.test(navigator.userAgent) && !/Chrome/i.test(navigator.userAgent);
+                if (isSafari) {
+                    alert('To install this app:\n1. Tap the Share button\n2. Select "Add to Home Screen"\n3. Tap "Add"');
+                } else {
+                    alert('To install this app, look for "Add to Home Screen" or "Install" option in your browser menu.');
                 }
             }
         });
@@ -900,16 +969,5 @@ document.addEventListener('DOMContentLoaded', () => {
             // Store dismissal in localStorage to avoid showing again for a while
             localStorage.setItem('installPromptDismissed', Date.now().toString());
         });
-    }
-    
-    // Check if install prompt was recently dismissed
-    const dismissedTime = localStorage.getItem('installPromptDismissed');
-    if (dismissedTime) {
-        const daysSinceDismissal = (Date.now() - parseInt(dismissedTime)) / (1000 * 60 * 60 * 24);
-        if (daysSinceDismissal < 7) { // Don't show for 7 days after dismissal
-            if (installBanner) {
-                installBanner.style.display = 'none';
-            }
-        }
     }
 });
