@@ -869,16 +869,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         }
         
-        // Check if recently dismissed
-        const dismissedTime = localStorage.getItem('installPromptDismissed');
-        if (dismissedTime) {
-            const daysSinceDismissal = (Date.now() - parseInt(dismissedTime)) / (1000 * 60 * 60 * 24);
-            if (daysSinceDismissal < 7) {
-                console.log('Install prompt was recently dismissed');
-                return false;
-            }
-        }
-        
+        // Always show banner if not installed
         return true;
     }
     
@@ -964,8 +955,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (installBanner) {
                 installBanner.style.display = 'none';
             }
-            // Store dismissal in localStorage to avoid showing again for a while
-            localStorage.setItem('installPromptDismissed', Date.now().toString());
+            // Just hide the banner - it will show again on next page load
         });
     }
 });
