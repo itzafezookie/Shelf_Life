@@ -8,8 +8,6 @@
   "theme_color": "#2563eb",
   "orientation": "portrait",
   "scope": "./",
-  "lang": "en",
-  "categories": ["books", "productivity", "lifestyle"],
   "icons": [
     {
       "src": "./Icon_192.svg",
@@ -23,5 +21,8 @@
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "categories": ["books", "productivity", "lifestyle"],
+  "lang": "en",
+  "dir": "ltr"
 }
