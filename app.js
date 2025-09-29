@@ -295,6 +295,21 @@ function shelfLifeApp() {
             return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         },
 
+        getEstimatedSessionLength() {
+            if (!this.currentBook) return '--';
+            
+            const avgSpeed = parseFloat(this.getAverageSpeed());
+            if (avgSpeed === 0) return '--';
+            
+            const pagesPerDay = this.getPagesPerDay();
+            if (pagesPerDay === '--' || pagesPerDay === 'Overdue!') return '--';
+            
+            // Calculate estimated session length: pages needed per day / reading speed
+            const minutesNeeded = pagesPerDay / avgSpeed;
+            
+            return this.formatMinutes(minutesNeeded);
+        },
+
         // Utility Functions
         formatTime(isoString) {
             if (!isoString) return '';
@@ -696,7 +711,48 @@ function shelfLifeApp() {
             this.updateGenreChart();
         },
 
-        // Abandon current book (mark as DNF)
+        editDueDate(book) {
+            if (!book) return;
+            
+            const currentDate = book.due_date ? book.due_date.split('T')[0] : '';
+            const newDate = prompt('Enter new due date (YYYY-MM-DD):', currentDate);
+            
+            if (newDate === null) return; // User cancelled
+            
+            if (newDate === '') {
+                // Remove due date
+                book.due_date = null;
+            } else {
+                // Validate date format
+                const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+                if (!dateRegex.test(newDate)) {
+                    alert('Please enter a valid date in YYYY-MM-DD format.');
+                    return;
+                }
+                
+                // Check if date is valid
+                const testDate = new Date(newDate);
+                if (testDate.toISOString().split('T')[0] !== newDate) {
+                    alert('Please enter a valid date.');
+                    return;
+                }
+                
+                book.due_date = newDate;
+            }
+            
+            // Update the book in the books array
+            const bookIndex = this.books.findIndex(b => b.id === book.id);
+            if (bookIndex !== -1) {
+                this.books[bookIndex] = { ...book };
+            }
+            
+            // If this is the current book, update it too
+            if (this.currentBook && this.currentBook.id === book.id) {
+                this.currentBook = { ...book };
+            }
+            
+            this.saveData();
+        },
         abandonCurrentBook() {
             if (!this.currentBook) return;
             
