@@ -100,7 +100,8 @@
                                 <div class="book-stats">
                                     <span class="stat text-body">
                                         <span x-text="currentBook?.pages_read || 0"></span> / 
-                                        <span x-text="currentBook?.pages_total || 0"></span> pages
+                                        <span x-text="currentBook?.pages_total || 0"></span> Pages | 
+                                        <span x-text="getEstimatedTimeRemaining()"></span> Remaining
                                     </span>
                                 </div>
                                 <!-- Progress Bar directly in book-info -->
@@ -123,8 +124,8 @@
                                 <div class="stat-label text-small">Pages/min</div>
                             </div>
                             <div class="stat-card">
-                                <div class="stat-value text-h3 text-primary" x-text="getEstimatedTimeRemaining()"></div>
-                                <div class="stat-label text-small">Time left</div>
+                                <div class="stat-value text-h3 text-primary" x-text="getEstimatedSessionLength()"></div>
+                                <div class="stat-label text-small">Estimated Session Length</div>
                             </div>
                             <div class="stat-card" x-show="currentBook?.due_date">
                                 <div class="stat-value text-h3 text-primary" x-text="getPagesPerDay()"></div>
@@ -293,7 +294,26 @@
                         <h2 x-text="selectedBook?.title || 'Book Details'" class="text-h2"></h2>
                         <p x-text="selectedBook?.author" class="text-body text-secondary"></p>
                         <p x-text="selectedBook?.status" class="text-small text-secondary"></p>
+                        
+                        <!-- Date Started -->
+                        <p x-show="selectedBook?.date_started" x-text="selectedBook?.date_started ? `Started: ${formatDate(selectedBook.date_started)}` : ''" class="text-small text-secondary"></p>
+                        
+                        <!-- Due Date (clickable) -->
+                        <p x-show="selectedBook?.due_date" class="text-small text-secondary">
+                            Due Date: 
+                            <span @click="editDueDate(selectedBook)" class="clickable-date" x-text="selectedBook?.due_date ? formatDate(selectedBook.due_date) : ''"></span>
+                            <span @click="editDueDate(selectedBook)" class="edit-icon">✏️</span>
+                        </p>
+                        
+                        <!-- Completion Date -->
                         <p x-show="selectedBook?.date_finished" x-text="selectedBook?.date_finished ? `Completed: ${formatDate(selectedBook.date_finished)}` : ''" class="text-small text-secondary"></p>
+                        
+                        <!-- Genre Tags -->
+                        <div x-show="selectedBook?.genres && selectedBook.genres.length > 0" class="genre-tags">
+                            <template x-for="genre in selectedBook?.genres" :key="genre">
+                                <span class="genre-tag" x-text="genre"></span>
+                            </template>
+                        </div>
                     </div>
                     <button @click="closeBookDetails()" class="close-button">×</button>
                 </div>
