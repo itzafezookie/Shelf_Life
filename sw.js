@@ -1,16 +1,16 @@
 // Shelf Life Service Worker
 const CACHE_NAME = 'shelf-life-v1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/app.js',
-  '/manifest.json',
-  '/Icon_192.svg',
-  '/Icon_512.svg',
-  '/default-cover.svg',
-  '/default-cover-large.svg',
-  '/default-cover-small.svg',
+  './',
+  './index.html',
+  './styles.css',
+  './app.js',
+  './manifest.json',
+  './Icon_192.svg',
+  './Icon_512.svg',
+  './default-cover.svg',
+  './default-cover-large.svg',
+  './default-cover-small.svg',
   // External dependencies
   'https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js',
   'https://cdn.jsdelivr.net/npm/chart.js'
