@@ -854,4 +854,62 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
         });
     }
+    
+    // PWA Install Prompt
+    let deferredPrompt;
+    const installButton = document.getElementById('install-button');
+    const installBanner = document.getElementById('install-banner');
+    
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent the mini-infobar from appearing on mobile
+        e.preventDefault();
+        // Stash the event so it can be triggered later
+        deferredPrompt = e;
+        // Show the install banner
+        if (installBanner) {
+            installBanner.style.display = 'flex';
+        }
+    });
+    
+    // Handle install button click
+    if (installButton) {
+        installButton.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                // Show the install prompt
+                deferredPrompt.prompt();
+                // Wait for the user to respond to the prompt
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to the install prompt: ${outcome}`);
+                // Clear the deferredPrompt variable
+                deferredPrompt = null;
+                // Hide the install banner
+                if (installBanner) {
+                    installBanner.style.display = 'none';
+                }
+            }
+        });
+    }
+    
+    // Handle dismiss button click
+    const dismissButton = document.getElementById('dismiss-install');
+    if (dismissButton) {
+        dismissButton.addEventListener('click', () => {
+            if (installBanner) {
+                installBanner.style.display = 'none';
+            }
+            // Store dismissal in localStorage to avoid showing again for a while
+            localStorage.setItem('installPromptDismissed', Date.now().toString());
+        });
+    }
+    
+    // Check if install prompt was recently dismissed
+    const dismissedTime = localStorage.getItem('installPromptDismissed');
+    if (dismissedTime) {
+        const daysSinceDismissal = (Date.now() - parseInt(dismissedTime)) / (1000 * 60 * 60 * 24);
+        if (daysSinceDismissal < 7) { // Don't show for 7 days after dismissal
+            if (installBanner) {
+                installBanner.style.display = 'none';
+            }
+        }
+    }
 });
