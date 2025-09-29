@@ -14,8 +14,10 @@ function shelfLifeApp() {
         showUpdateProgress: false,
         showBookDetails: false,
         showRatingModal: false,
+        showSessionCompletion: false,
         selectedBook: null,
         completedBookTitle: '',
+        sessionCompletionData: null,
         
         // Book Search State
         searchQuery: '',
@@ -83,6 +85,85 @@ function shelfLifeApp() {
             localStorage.setItem('shelfLife_genres', JSON.stringify(this.genres));
         },
         
+        exportData() {
+            const exportData = {
+                books: this.books,
+                sessions: this.sessions,
+                genres: this.genres,
+                exportDate: new Date().toISOString(),
+                version: '1.0'
+            };
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `shelf-life-data-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        },
+        
+        importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const importedData = JSON.parse(e.target.result);
+                            
+                            // Validate the imported data structure
+                            if (importedData.books && importedData.sessions && importedData.genres) {
+                                // Confirm with user before importing
+                                if (confirm('This will replace all your current data. Are you sure you want to import?')) {
+                                    this.books = importedData.books;
+                                    this.sessions = importedData.sessions;
+                                    this.genres = importedData.genres;
+                                    
+                                    // Save the imported data
+                                    this.saveData();
+                                    
+                                    // Find and set current book from imported data
+                                    const currentBook = this.books.find(book => book.status === 'current');
+                                    if (currentBook) {
+                                        this.currentBook = currentBook;
+                                        localStorage.setItem('currentBookId', currentBook.id);
+                                    } else {
+                                        this.currentBook = null;
+                                        localStorage.removeItem('currentBookId');
+                                    }
+                                    
+                                    // Reset active session
+                                    this.currentSession = null;
+                                    localStorage.removeItem('activeSession');
+                                    
+                                    // Update genre chart if on genres tab
+                                    if (this.currentTab === 'genres') {
+                                        this.$nextTick(() => {
+                                            this.updateGenreChart();
+                                        });
+                                    }
+                                    
+                                    alert('Data imported successfully!');
+                                }
+                            } else {
+                                alert('Invalid file format. Please select a valid Shelf Life data export file.');
+                            }
+                        } catch (error) {
+                            alert('Error reading file. Please make sure it\'s a valid JSON file.');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        },
+        
         // Book Management
         selectBook(book) {
             this.selectedBook = book;
@@ -98,7 +179,9 @@ function shelfLifeApp() {
         getAverageSpeed() {
             if (!this.currentBook) return '0.0';
             
-            const bookSessions = this.sessions.filter(s => s.book_id === this.currentBook.id);
+            const bookSessions = this.sessions.filter(s => 
+                s.book_id === this.currentBook.id && !s.exclude_from_pace
+            );
             if (bookSessions.length === 0) return '0.0';
             
             const totalTime = bookSessions.reduce((sum, session) => sum + session.total_duration, 0);
@@ -219,11 +302,18 @@ function shelfLifeApp() {
         stopSession() {
             if (!this.currentSession) return;
             
-            // Show modal to get current page
-            const currentPageStr = prompt(`What page did you read up to? (You started at page ${this.currentBook.pages_read + 1})`);
-            if (currentPageStr === null) return;
+            // Show session completion modal
+            this.showSessionCompletion = true;
+            this.sessionCompletionData = {
+                currentPage: this.currentBook.pages_read + 1,
+                excludeFromPace: false
+            };
+        },
+
+        completeSession() {
+            if (!this.currentSession) return;
             
-            const currentPage = parseInt(currentPageStr) || this.currentBook.pages_read;
+            const currentPage = parseInt(this.sessionCompletionData.currentPage) || this.currentBook.pages_read;
             const pagesRead = Math.max(0, currentPage - this.currentBook.pages_read);
             const now = new Date().toISOString();
             
@@ -246,6 +336,7 @@ function shelfLifeApp() {
             this.currentSession.total_pages = pagesRead;
             this.currentSession.pages_per_min = totalDuration > 0 ? pagesRead / totalDuration : 0;
             this.currentSession.end_time = now;
+            this.currentSession.exclude_from_pace = this.sessionCompletionData.excludeFromPace;
             
             // Update book progress
             this.currentBook.pages_read = Math.min(
@@ -273,7 +364,16 @@ function shelfLifeApp() {
             this.currentSession = null;
             localStorage.removeItem('activeSession');
             
+            // Close modal
+            this.showSessionCompletion = false;
+            this.sessionCompletionData = null;
+            
             this.saveData();
+        },
+
+        cancelSessionCompletion() {
+            this.showSessionCompletion = false;
+            this.sessionCompletionData = null;
         },
         
         // Session Display
@@ -389,7 +489,7 @@ function shelfLifeApp() {
 
         getAverageReadingSpeed(book) {
             if (!book) return '0.0';
-            const bookSessions = this.getBookSessions(book.id);
+            const bookSessions = this.getBookSessions(book.id).filter(session => !session.exclude_from_pace);
             if (bookSessions.length === 0) return '0.0';
             const totalMinutes = bookSessions.reduce((total, session) => total + (session.total_duration || 0), 0);
             const totalPages = bookSessions.reduce((total, session) => total + (session.total_pages || 0), 0);
