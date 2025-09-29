@@ -369,7 +369,10 @@ function shelfLifeApp() {
             
             // Close modal
             this.showSessionCompletion = false;
-            this.sessionCompletionData = null;
+            this.sessionCompletionData = {
+                currentPage: null,
+                excludeFromPace: false
+            };
             
             this.saveData();
         },
