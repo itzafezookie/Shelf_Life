@@ -175,9 +175,17 @@
                 <div x-show="currentTab === 'library'" class="tab-content">
                     <div class="section-header">
                         <h2>Your Library</h2>
-                        <button @click="showAddBook = true" class="btn btn-primary text-body">
-                            + Add Book
-                        </button>
+                        <div class="section-actions">
+                            <button @click="exportData()" class="btn btn-secondary btn-small text-body">
+                                📥 Export Data
+                            </button>
+                            <button @click="importData()" class="btn btn-outline btn-small text-body">
+                                📤 Import Data
+                            </button>
+                            <button @click="showAddBook = true" class="btn btn-primary btn-small text-body">
+                                + Add Book
+                            </button>
+                        </div>
                     </div>
                     
                     <div x-show="books.length === 0" class="empty-state">
@@ -509,6 +517,48 @@
                 
                 <div class="modal-actions">
                     <button @click="skipRating()" class="btn btn-secondary">Skip Rating</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Session Completion Modal -->
+        <div x-show="showSessionCompletion" class="book-details-modal" @click.self="cancelSessionCompletion()">
+            <div class="book-details-content">
+                <button @click="cancelSessionCompletion()" class="modal-close">×</button>
+                <h2 class="text-h2">Finish Reading Session</h2>
+                
+                <div class="form-group">
+                    <label class="form-label">What page did you read up to?</label>
+                    <p class="text-small text-secondary" x-text="`You started at page ${currentBook?.pages_read + 1}`"></p>
+                    <input 
+                        type="number" 
+                        x-model="sessionCompletionData.currentPage" 
+                        class="form-input"
+                        :min="currentBook?.pages_read + 1"
+                        :max="currentBook?.pages_total"
+                        placeholder="Enter current page"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label class="checkbox-container">
+                        <input 
+                            type="checkbox" 
+                            x-model="sessionCompletionData.excludeFromPace"
+                        >
+                        <span class="checkmark"></span>
+                        <span class="checkbox-label">
+                            Exclude from pace calculation
+                            <small class="text-small text-secondary">
+                                Check this if you had distractions and didn't read at your normal pace
+                            </small>
+                        </span>
+                    </label>
+                </div>
+                
+                <div class="modal-actions">
+                    <button @click="cancelSessionCompletion()" class="btn btn-secondary">Cancel</button>
+                    <button @click="completeSession()" class="btn btn-primary">Finish Session</button>
                 </div>
             </div>
         </div>
