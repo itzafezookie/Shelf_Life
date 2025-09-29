@@ -17,7 +17,10 @@ function shelfLifeApp() {
         showSessionCompletion: false,
         selectedBook: null,
         completedBookTitle: '',
-        sessionCompletionData: null,
+        sessionCompletionData: {
+            currentPage: null,
+            excludeFromPace: false
+        },
         
         // Book Search State
         searchQuery: '',
@@ -373,7 +376,10 @@ function shelfLifeApp() {
 
         cancelSessionCompletion() {
             this.showSessionCompletion = false;
-            this.sessionCompletionData = null;
+            this.sessionCompletionData = {
+                currentPage: null,
+                excludeFromPace: false
+            };
         },
         
         // Session Display
