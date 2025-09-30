@@ -459,15 +459,17 @@ body {
 .app-title {
     display: flex;
     align-items: center;
+    justify-content: center; /* center logo horizontally */
     gap: 0.5rem;
     text-align: center;
     padding: 1rem 0 0.5rem;
 }
 
 .app-icon {
-    width: 32px;
-    height: 32px;
+    width: clamp(160px, 24vw, 240px); /* larger, responsive size */
+    height: auto; /* preserve aspect ratio */
     flex-shrink: 0;
+    display: block;
 }
 
 .nav-tabs {
@@ -679,7 +681,7 @@ body {
 /* Stats Grid */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
     gap: 1rem;
     margin-bottom: 1.5rem;
 }
@@ -878,6 +880,41 @@ body {
     cursor: pointer;
 }
 
+/* Mini stats column to utilize right whitespace */
+.book-card-mini-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 0.25rem;
+    margin-left: auto;
+    text-align: right;
+}
+.mini-stat {
+    font-size: 0.8rem;
+    color: #4b5563;
+}
+
+/* Smaller stat card content to reduce size */
+.stats-grid .stat-card .stat-value {
+    font-size: 1.25rem;
+}
+.stats-grid .stat-card .stat-label {
+    font-size: 0.75rem;
+}
+
+/* Override edit input */
+.override-edit .input-small {
+    padding: 0.375rem 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    width: 110px;
+}
+.btn.btn-small {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
 .book-card-cover {
     width: 60px;
     height: 90px;
@@ -1013,14 +1050,19 @@ body {
 .rating-icon {
     font-size: 1.2rem;
     display: inline-block;
-/* Chart Container */
-.chart-container {
-    background: white;
-    padding: 2rem;
-    border-radius: 1rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    text-align: center;
 }
+
+.settings-footer {
+    margin-top: 1.25rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+.settings-footer p { margin: 0.15rem 0; }
+
 
 /* Genre Filter Section */
 .genre-filter-section {
@@ -1039,7 +1081,7 @@ body {
     font-weight: 600;
     color: var(--text-primary);
     margin: 0;
-}   max-width: 600px;
+   max-width: 600px;
     margin: 0 auto;
 }
 
@@ -1060,16 +1102,21 @@ body {
     align-items: center;
     justify-content: center;
     z-index: 999999;
+    padding-inline: .1rem; /* ensure equal left/right spacing at viewport edges */
 }
 
 .book-details-content {
     background: white;
     border-radius: 1rem;
-    padding: 2rem;
-    max-width: 600px;
-    width: 90%;
+    padding: .5rem;
+    max-width: 720px;
+    width: 100%;
+    margin: 0 auto;
     max-height: 80vh;
     overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-gutter: stable;
+    box-sizing: border-box;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     position: relative;
     z-index: 1000000;
@@ -1131,30 +1178,43 @@ body {
 
 .book-details-modal .book-stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin-bottom: 2rem;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 1rem;
 }
 
 .book-details-modal .stat-item {
     background: var(--bg-secondary);
-    padding: 1rem;
+    padding: 0.5rem;
     border-radius: 8px;
     text-align: center;
-}
-
-.book-details-modal .stat-value {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--accent-color);
-    margin-bottom: 0.25rem;
+    min-width: 0; /* allow grid children to shrink to avoid horizontal overflow */
 }
 
 .book-details-modal .stat-label {
-    font-size: 0.875rem;
+    font-size: 0.68rem;
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
+    line-height: 1.2;
+    white-space: normal; /* wrap only between words */
+    word-break: keep-all; /* avoid breaking individual words */
+}
+
+.book-details-modal .stat-value {
+    font-size: .9rem;
+    font-weight: 600;
+    color: var(--accent-color);
+    margin-bottom: 0.2rem;
+    line-height: 1.1;
+}
+
+.book-details-modal .stat-label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    line-height: 1.1;
 }
 
 .session-history-section h3 {
@@ -1240,7 +1300,7 @@ body {
     }
     
     .stats-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(5, 1fr);
     }
 }
 
@@ -1263,4 +1323,12 @@ body {
     clip: rect(0, 0, 0, 0); 
     white-space: nowrap; 
     border: 0; 
+}
+.brand-link {
+    color: #0fdc78;
+    text-decoration: none;
+    font-weight: 600;
+}
+.brand-link:hover {
+    text-decoration: underline;
 }
