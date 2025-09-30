@@ -9,6 +9,10 @@ function shelfLifeApp() {
         sessions: [],
         genres: [],
         
+        // Settings State
+        appVersion: 'v0.02',
+        baselineWPM: null,
+        
         // UI State
         showAddBook: false,
         showUpdateProgress: false,
@@ -21,6 +25,10 @@ function shelfLifeApp() {
             currentPage: null,
             excludeFromPace: false
         },
+        // Inline override editor state for Pages/min
+        speedOverrideEditing: false,
+        speedOverrideInput: null,
+        showSpeedOverrideModal: false,
         
         // Book Search State
         searchQuery: '',
@@ -54,10 +62,10 @@ function shelfLifeApp() {
                 this.currentBook = this.books.find(book => book.id === currentBookId);
             }
             
-            // Check for active session
-            const activeSession = localStorage.getItem('activeSession');
-            if (activeSession) {
-                this.currentSession = JSON.parse(activeSession);
+            // Load baseline WPM from localStorage
+            const savedBaselineWPM = localStorage.getItem('shelfLife_baselineWPM');
+            if (savedBaselineWPM !== null) {
+                this.baselineWPM = parseFloat(savedBaselineWPM) || null;
             }
         },
         
@@ -94,7 +102,7 @@ function shelfLifeApp() {
                 sessions: this.sessions,
                 genres: this.genres,
                 exportDate: new Date().toISOString(),
-                version: '1.0'
+                version: this.appVersion
             };
             
             const dataStr = JSON.stringify(exportData, null, 2);
@@ -181,16 +189,23 @@ function shelfLifeApp() {
         
         getAverageSpeed() {
             if (!this.currentBook) return '0.0';
-            
+            const startDate = this.currentBook.date_started ? new Date(this.currentBook.date_started) : null;
             const bookSessions = this.sessions.filter(s => 
-                s.book_id === this.currentBook.id && !s.exclude_from_pace
+                s.book_id === this.currentBook.id && 
+                !s.exclude_from_pace && 
+                (!startDate || new Date(s.start_time) >= startDate)
             );
-            if (bookSessions.length === 0) return '0.0';
-            
-            const totalTime = bookSessions.reduce((sum, session) => sum + session.total_duration, 0);
-            const totalPages = bookSessions.reduce((sum, session) => sum + session.total_pages, 0);
-            
-            if (totalTime === 0) return '0.0';
+            // If no valid sessions, fall back to manual override if present
+            if (bookSessions.length === 0) {
+                const override = this.currentBook.override_pages_per_min;
+                return override ? Number(override).toFixed(1) : '0.0';
+            }
+            const totalTime = bookSessions.reduce((sum, session) => sum + (session.total_duration || 0), 0);
+            const totalPages = bookSessions.reduce((sum, session) => sum + (session.total_pages || 0), 0);
+            if (totalTime === 0) {
+                const override = this.currentBook.override_pages_per_min;
+                return override ? Number(override).toFixed(1) : '0.0';
+            }
             return (totalPages / totalTime).toFixed(1);
         },
         
@@ -350,6 +365,13 @@ function shelfLifeApp() {
             // Save session
             this.sessions.push(this.currentSession);
             
+            // If we captured a valid pace for this session (and it's not excluded), clear any manual override
+            if (!this.currentSession.exclude_from_pace && this.currentSession.pages_per_min > 0) {
+                if (this.currentBook && this.currentBook.override_pages_per_min) {
+                    delete this.currentBook.override_pages_per_min;
+                }
+            }
+            
             // Check if book is completed
             if (this.currentBook.pages_read >= this.currentBook.pages_total) {
                 // Store book title for rating modal
@@ -374,6 +396,7 @@ function shelfLifeApp() {
                 excludeFromPace: false
             };
             
+            // Persist data after updates
             this.saveData();
         },
 
@@ -419,13 +442,68 @@ function shelfLifeApp() {
             return this.formatMinutes(minutesNeeded);
         },
 
+        // Inline override editor handlers for Pages/min
+        beginSpeedOverrideEdit() {
+            this.showSpeedOverrideModal = true;
+            const current = parseFloat(this.getAverageSpeed());
+            const existing = this.currentBook?.override_pages_per_min ? parseFloat(this.currentBook.override_pages_per_min) : null;
+            this.speedOverrideInput = (existing && existing > 0) ? existing : (isNaN(current) ? null : current);
+        },
+        saveSpeedOverride() {
+            const val = Number(this.speedOverrideInput);
+            if (this.currentBook && !isNaN(val) && val > 0) {
+                this.currentBook.override_pages_per_min = val;
+                this.saveData();
+            }
+            this.showSpeedOverrideModal = false;
+            this.speedOverrideEditing = false;
+        },
+        cancelSpeedOverride() {
+            this.showSpeedOverrideModal = false;
+            this.speedOverrideEditing = false;
+            this.speedOverrideInput = null;
+        },
+
+        editBaselineWPM() {
+            const current = (this.baselineWPM !== null && !isNaN(this.baselineWPM)) ? String(this.baselineWPM) : '';
+            const input = prompt('Enter baseline words per minute (WPM):', current);
+            if (input === null) return; // cancelled
+
+            if (input.trim() === '') {
+                // Clear baseline
+                this.baselineWPM = null;
+                localStorage.removeItem('shelfLife_baselineWPM');
+                return;
+            }
+
+            const val = Number(input);
+            if (isNaN(val)) {
+                alert('Please enter a valid number for WPM.');
+                return;
+            }
+
+            // Clamp and save
+            this.baselineWPM = Math.max(0, Math.min(2000, val));
+            this.saveBaselineWPM();
+        },
+        saveBaselineWPM() {
+            if (this.baselineWPM === null || isNaN(this.baselineWPM)) {
+                localStorage.removeItem('shelfLife_baselineWPM');
+                return;
+            }
+            // Clamp to reasonable range 0-2000
+            const clamped = Math.max(0, Math.min(2000, Number(this.baselineWPM)));
+            this.baselineWPM = clamped;
+            localStorage.setItem('shelfLife_baselineWPM', String(clamped));
+        },
+
         // Utility Functions
         formatTime(isoString) {
             if (!isoString) return '';
             const date = new Date(isoString);
             return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         },
-
+        
         formatDate(isoString) {
             if (!isoString) return '';
             const date = new Date(isoString);
@@ -498,11 +576,69 @@ function shelfLifeApp() {
 
         getAverageReadingSpeed(book) {
             if (!book) return '0.0';
-            const bookSessions = this.getBookSessions(book.id).filter(session => !session.exclude_from_pace);
+            const startDate = book.date_started ? new Date(book.date_started) : null;
+            const bookSessions = this.getBookSessions(book.id).filter(session => 
+                !session.exclude_from_pace && 
+                (!startDate || new Date(session.start_time) >= startDate)
+            );
             if (bookSessions.length === 0) return '0.0';
             const totalMinutes = bookSessions.reduce((total, session) => total + (session.total_duration || 0), 0);
             const totalPages = bookSessions.reduce((total, session) => total + (session.total_pages || 0), 0);
             return totalMinutes > 0 ? (totalPages / totalMinutes * 60).toFixed(1) : '0.0';
+        },
+
+        // Pages/min for a specific book (used for word estimates)
+        getAverageSpeedForBook(book) {
+            if (!book) return 0;
+            const startDate = book.date_started ? new Date(book.date_started) : null;
+            const bookSessions = this.sessions.filter(s => 
+                s.book_id === book.id && 
+                !s.exclude_from_pace && 
+                (!startDate || new Date(s.start_time) >= startDate)
+            );
+            if (bookSessions.length === 0) {
+                const override = book.override_pages_per_min;
+                return override ? Number(override) : 0;
+            }
+            const totalTime = bookSessions.reduce((sum, session) => sum + (session.total_duration || 0), 0);
+            const totalPages = bookSessions.reduce((sum, session) => sum + (session.total_pages || 0), 0);
+            if (totalTime === 0) {
+                const override = book.override_pages_per_min;
+                return override ? Number(override) : 0;
+            }
+            return totalPages / totalTime;
+        },
+
+        // Estimated words-per-page from baseline WPM and book pace
+        getEstimatedWordsPerPage(book) {
+            const baseline = (this.baselineWPM !== null && !isNaN(this.baselineWPM)) ? Number(this.baselineWPM) : 200;
+            const ppm = book ? this.getAverageSpeedForBook(book) : (this.currentBook ? this.getAverageSpeedForBook(this.currentBook) : 0);
+            let wordsPerPage;
+            if (baseline > 0 && ppm > 0) {
+                wordsPerPage = baseline / ppm;
+            } else {
+                // Fallback average words per page
+                wordsPerPage = 300;
+            }
+            // Clamp to reasonable range
+            wordsPerPage = Math.max(150, Math.min(600, wordsPerPage));
+            return Math.round(wordsPerPage);
+        },
+
+        // Estimated totals for display
+        getEstimatedTotalWords(book) {
+            const pages = book?.pages_total || 0;
+            return Math.round(pages * this.getEstimatedWordsPerPage(book));
+        },
+        getEstimatedWordsRead(book) {
+            const pagesRead = this.getBookTotalPages(book);
+            return Math.round(pagesRead * this.getEstimatedWordsPerPage(book));
+        },
+
+        // Format numbers with thousands separators
+        formatNumber(num) {
+            if (num === null || num === undefined || isNaN(num)) return '0';
+            return Number(num).toLocaleString(undefined, { maximumFractionDigits: 0 });
         },
 
         formatSessionDuration(session) {
@@ -513,6 +649,69 @@ function shelfLifeApp() {
         closeBookDetails() {
             this.showBookDetails = false;
             this.selectedBook = null;
+        },
+
+        startReReadSelectedBook() {
+            const book = this.selectedBook;
+            if (!book) return;
+            if (this.currentSession) {
+                alert('You have an active session. Please stop it before switching books.');
+                return;
+            }
+            // If a different current book exists, abandon via existing flow (with confirmation)
+            if (this.currentBook && this.currentBook.id !== book.id) {
+                const prevCurrentId = this.currentBook.id;
+                this.abandonCurrentBook();
+                // If user cancelled abandonment, do not proceed
+                if (this.currentBook && this.currentBook.id === prevCurrentId) {
+                    return;
+                }
+            }
+            // Reset progress and set as current
+            book.pages_read = 0;
+            book.status = 'current';
+            book.date_finished = null;
+            book.date_abandoned = null;
+            book.date_started = new Date().toISOString();
+            // Update books array and set current
+            const idx = this.books.findIndex(b => b.id === book.id);
+            if (idx !== -1) this.books[idx] = { ...book };
+            this.currentBook = book;
+            localStorage.setItem('currentBookId', book.id);
+            this.saveData();
+            // Prompt for a new due date
+            this.editDueDate(book);
+            this.closeBookDetails();
+        },
+
+        resumeSelectedBook() {
+            const book = this.selectedBook;
+            if (!book) return;
+            if (this.currentSession) {
+                alert('You have an active session. Please stop it before switching books.');
+                return;
+            }
+            // If a different current book exists, abandon via existing flow (with confirmation)
+            if (this.currentBook && this.currentBook.id !== book.id) {
+                const prevCurrentId = this.currentBook.id;
+                this.abandonCurrentBook();
+                // If user cancelled abandonment, do not proceed
+                if (this.currentBook && this.currentBook.id === prevCurrentId) {
+                    return;
+                }
+            }
+            // Set as current without resetting progress or pace
+            book.status = 'current';
+            book.date_abandoned = null;
+            // Update books array and set current
+            const idx = this.books.findIndex(b => b.id === book.id);
+            if (idx !== -1) this.books[idx] = { ...book };
+            this.currentBook = book;
+            localStorage.setItem('currentBookId', book.id);
+            this.saveData();
+            // Prompt for a new due date
+            this.editDueDate(book);
+            this.closeBookDetails();
         },
         
         // Genre Chart
@@ -954,13 +1153,20 @@ function shelfLifeApp() {
         // Rating Methods
         rateBook(isPositive) {
             if (this.currentBook) {
-                this.currentBook.rating = isPositive ? 'thumbs_up' : 'thumbs_down';
+                const ratingValue = isPositive ? 'thumbs_up' : 'thumbs_down';
+                if (!Array.isArray(this.currentBook.ratings_history)) {
+                    this.currentBook.ratings_history = [];
+                }
+                this.currentBook.ratings_history.push(ratingValue);
+                // Maintain existing single rating for backward compatibility in list cards
+                this.currentBook.rating = ratingValue;
                 this.finishBookCompletion();
             }
         },
 
         skipRating() {
             if (this.currentBook) {
+                // Do not append to history when skipping
                 this.currentBook.rating = null;
                 this.finishBookCompletion();
             }
@@ -1010,6 +1216,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Register service worker for PWA functionality
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
+            const proto = window.location && window.location.protocol;
+            const host = window.location && window.location.hostname;
+            const canRegister = (proto === 'https:') || (proto === 'http:' && (host === 'localhost' || host === '127.0.0.1'));
+            if (!canRegister) {
+                console.log('SW registration skipped due to unsupported protocol:', proto);
+                return;
+            }
             navigator.serviceWorker.register('./sw.js')
                 .then(registration => {
                     console.log('SW registered: ', registration);
@@ -1020,3 +1233,152 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+
+// Word count estimates using Baseline WPM
+function formatNumber(num) {
+  if (num === null || num === undefined || isNaN(num)) return '0';
+  return num.toLocaleString(undefined, { maximumFractionDigits: 0 });
+}
+
+// Baseline WPM and words-per-page estimation
+function getEstimatedWordsPerPage() {
+  const baselineWpm = parseFloat(localStorage.getItem('baseline_wpm')) || 200;
+  // Assume average characters per page converted to words via typical 250-300 WPP; derive from WPM vs known session speeds when available
+  // Use a simple heuristic: words per page = baseline_wpm * (60 / pages_per_hour_from_history)
+  // If no history, fall back to 300 words/page
+  const currentBook = getCurrentBook();
+  const pagesPerHour = getAverageReadingSpeed(currentBook) > 0 ? getAverageReadingSpeed(currentBook) : (getAverageSpeed() * 60);
+  if (!pagesPerHour || pagesPerHour <= 0 || isNaN(pagesPerHour)) return 300;
+  const wpp = Math.max(150, Math.min(600, baselineWpm * (60 / pagesPerHour)));
+  return Math.round(wpp);
+}
+
+function getEstimatedTotalWords(book) {
+  const pages = book.total_pages || 0;
+  const wordsPerPage = getEstimatedWordsPerPage();
+  return Math.round(pages * wordsPerPage);
+}
+
+function getEstimatedWordsRead(book) {
+  const pagesRead = getBookTotalPages(book);
+  const wordsPerPage = getEstimatedWordsPerPage();
+  return Math.round(pagesRead * wordsPerPage);
+}
+
+// Override editor state
+let speedOverrideEditing = false;
+let speedOverrideInput = '';
+
+function beginSpeedOverrideEdit() {
+  speedOverrideEditing = true;
+  const editor = document.getElementById('speedOverrideEditor');
+  const input = document.getElementById('speedOverrideInput');
+  if (editor && input) {
+    editor.classList.remove('hidden');
+    const book = getCurrentBook();
+    const existing = (book && book.override_pages_per_min) ? parseFloat(book.override_pages_per_min) : getAverageSpeed();
+    input.value = existing && !isNaN(existing) ? existing.toFixed(2) : '';
+    input.focus();
+  }
+}
+
+function saveSpeedOverride() {
+  const input = document.getElementById('speedOverrideInput');
+  if (!input) return;
+  const val = parseFloat(input.value);
+  const book = getCurrentBook();
+  if (book && !isNaN(val) && val > 0) {
+    book.override_pages_per_min = val;
+    saveData();
+    renderCurrentReadingStats();
+  }
+  cancelSpeedOverride();
+}
+
+function cancelSpeedOverride() {
+  speedOverrideEditing = false;
+  const editor = document.getElementById('speedOverrideEditor');
+  if (editor) editor.classList.add('hidden');
+}
+
+// Hook up editor events after DOM ready
+window.addEventListener('DOMContentLoaded', () => {
+  const ppmCard = document.getElementById('pagesPerMinCard');
+  const saveBtn = document.getElementById('saveSpeedOverrideBtn');
+  const cancelBtn = document.getElementById('cancelSpeedOverrideBtn');
+  if (ppmCard) ppmCard.addEventListener('click', beginSpeedOverrideEdit);
+  if (saveBtn) saveBtn.addEventListener('click', saveSpeedOverride);
+  if (cancelBtn) cancelBtn.addEventListener('click', cancelSpeedOverride);
+});
+
+// Render current reading stats including override
+function renderCurrentReadingStats() {
+  const book = getCurrentBook();
+  if (!book) return;
+  const ppmEl = document.getElementById('pagesPerMinValue');
+  const ppm = getAverageSpeed();
+  if (ppmEl) ppmEl.textContent = (ppm && ppm > 0) ? ppm.toFixed(2) : '0';
+}
+
+// Use override in average speed if needed
+const originalGetAverageSpeed = typeof getAverageSpeed === 'function' ? getAverageSpeed : null;
+function getAverageSpeed() {
+  // If original function exists, compute as before
+  if (originalGetAverageSpeed) {
+    const speed = originalGetAverageSpeed();
+    if (speed && speed > 0) return speed;
+  }
+  // Fallback to per-book override
+  const book = getCurrentBook();
+  if (book && book.override_pages_per_min && parseFloat(book.override_pages_per_min) > 0) {
+    return parseFloat(book.override_pages_per_min);
+  }
+  return 0;
+}
+
+// When completing a session, clear override if a valid pace captured
+const originalCompleteSession = typeof completeSession === 'function' ? completeSession : null;
+function completeSession() {
+  if (!originalCompleteSession) return;
+  originalCompleteSession();
+  const book = getCurrentBook();
+  // Determine last session pace; if valid, remove override
+  const sessions = getBookSessions(book) || [];
+  const last = sessions.length ? sessions[sessions.length - 1] : null;
+  const pace = last && last.pages_per_min ? parseFloat(last.pages_per_min) : null;
+  if (book && pace && pace > 0) {
+    delete book.override_pages_per_min;
+    saveData();
+    renderCurrentReadingStats();
+  }
+}
+
+// Render library mini stats during grid render
+const originalRenderLibrary = typeof renderLibrary === 'function' ? renderLibrary : null;
+function renderLibrary() {
+  if (!originalRenderLibrary) return;
+  originalRenderLibrary();
+  // After original render, populate mini stats if present
+  const cards = document.querySelectorAll('.book-card');
+  cards.forEach(card => {
+    const titleEl = card.querySelector('.book-card-title');
+    if (!titleEl) return;
+    const title = titleEl.textContent || '';
+    const book = (window.library || []).find(b => (b.title || '') === title);
+    if (!book) return;
+    const pagesEl = card.querySelector('.mini-pages');
+    const wordsEl = card.querySelector('.mini-words');
+    if (pagesEl) pagesEl.textContent = formatNumber(book.total_pages || 0);
+    if (wordsEl) wordsEl.textContent = formatNumber(getEstimatedTotalWords(book));
+  });
+}
+
+// Populate Book Details estimated words when opened
+const originalOpenBookDetails = typeof openBookDetails === 'function' ? openBookDetails : null;
+function openBookDetails(book) {
+  if (!originalOpenBookDetails) return;
+  originalOpenBookDetails(book);
+  const wordsEl = document.getElementById('bookEstimatedWords');
+  if (wordsEl) wordsEl.textContent = formatNumber(getEstimatedTotalWords(book));
+}
