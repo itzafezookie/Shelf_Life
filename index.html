@@ -26,7 +26,7 @@
         <header class="header">
             <div class="container">
                 <h1 class="app-title text-h1 text-primary">
-                    <img src="./Icon_192.svg" alt="Shelf Life" class="app-icon"> Shelf Life v0.1
+                    <img src="./Logo_Header.svg" alt="Shelf Life" class="app-icon">
                 </h1>
                 <nav class="nav-tabs">
                     <button 
@@ -46,6 +46,12 @@
                         :class="{'active text-primary': currentTab === 'genres'}"
                         class="nav-tab text-label text-secondary">
                         📊 Stats
+                    </button>
+                    <button 
+                        @click="currentTab = 'settings'" 
+                        :class="{'active text-primary': currentTab === 'settings'}"
+                        class="nav-tab text-label text-secondary">
+                        ⚙️ Settings
                     </button>
                 </nav>
             </div>
@@ -102,9 +108,28 @@
 
                         <!-- Reading Stats -->
                         <div class="stats-grid">
-                            <div class="stat-card">
-                                <div class="stat-value text-h3 text-primary" x-text="getAverageSpeed()"></div>
-                                <div class="stat-label text-small">Pages/min</div>
+                            <div class="stat-card" @click="beginSpeedOverrideEdit()" style="cursor: pointer;">
+                                <div>
+                                    <div class="stat-value text-h3 text-primary" x-text="getAverageSpeed()"></div>
+                                    <div class="stat-label text-small">Pages/min <span x-show="currentBook?.override_pages_per_min" class="text-secondary">(override)</span></div>
+                                </div>
+                            </div>
+
+                            <!-- Pages/min Override Modal -->
+                            <div x-show="showSpeedOverrideModal" class="book-details-modal" @click.self="cancelSpeedOverride()">
+                                <div class="book-details-content">
+                                    <button @click="cancelSpeedOverride()" class="modal-close">×</button>
+                                    <h2 class="text-h2">Set Pages per Minute</h2>
+                                    <p class="text-body text-secondary">Enter a manual override for this book. It will be cleared automatically when a valid reading session pace is recorded.</p>
+                                    <div class="form-group">
+                                        <label class="form-label">Pages/min</label>
+                                        <input type="number" step="0.1" min="0.1" x-model.number="speedOverrideInput" class="form-input" placeholder="e.g. 0.9">
+                                    </div>
+                                    <div class="modal-actions">
+                                        <button class="btn btn-secondary" @click="cancelSpeedOverride()">Cancel</button>
+                                        <button class="btn btn-primary" @click="saveSpeedOverride()">Save</button>
+                                    </div>
+                                </div>
                             </div>
                             <div class="stat-card">
                                 <div class="stat-value text-h3 text-primary" x-text="getEstimatedSessionLength()"></div>
@@ -176,12 +201,6 @@
                     <div class="section-header">
                         <h2>Your Library</h2>
                         <div class="section-actions">
-                            <button @click="exportData()" class="btn btn-secondary btn-small text-body">
-                                📥 Export Data
-                            </button>
-                            <button @click="importData()" class="btn btn-outline btn-small text-body">
-                                📤 Import Data
-                            </button>
                             <button @click="showAddBook = true" class="btn btn-primary btn-small text-body">
                                 + Add Book
                             </button>
@@ -211,6 +230,10 @@
                                                 <span x-show="book.rating === 'thumbs_down'" class="rating-icon">👎</span>
                                             </div>
                                         </div>
+                                    </div>
+                                    <div class="book-card-mini-stats">
+                                        <div class="mini-stat"><span x-text="formatNumber(book.pages_read || 0)"></span>/<span x-text="formatNumber(book.pages_total || 0)"></span> pages</div>
+                                        <div class="mini-stat"><span x-text="formatNumber(getEstimatedTotalWords(book))"></span> words</div>
                                     </div>
                                 </div>
                                 <button @click="deleteBook(book.id)" class="delete-book-btn" title="Delete book from library">
@@ -272,6 +295,40 @@
                     </div>
                 </div>
 
+                <!-- Settings Tab -->
+                <div x-show="currentTab === 'settings'" class="tab-content">
+                    <div class="section-header">
+                        <h2>Settings</h2>
+                    </div>
+
+                    <div class="settings-grid" style="display: grid; grid-template-columns: 1fr; gap: 16px; max-width: 720px;">
+
+                        <div class="form-field">
+                            <label>Baseline WPM</label>
+                            <p class="text-h1">
+                                <span @click="editBaselineWPM()" class="clickable-date" x-text="baselineWPM !== null ? baselineWPM : 'Set baseline WPM'"></span>
+                                <span @click="editBaselineWPM()" class="edit-icon">✏️</span>
+                            </p>
+                            <p class="text-small text-secondary">Used for planning and estimates. You can change this anytime.</p>
+                        </div>
+
+                        <div class="section-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button @click="exportData()" class="btn btn-secondary btn-small text-body">
+                                📥 Export Data
+                            </button>
+                            <button @click="importData()" class="btn btn-outline btn-small text-body">
+                                📤 Import Data
+                            </button>
+                        </div>
+
+                        <!-- Settings Footer -->
+                        <div class="settings-footer">
+                            <p>© <span x-text="new Date().getFullYear()"></span> — All rights reserved.</p>
+                            <p>Coded by Fezuk Technologies via <a href="https://trae.ai" class="brand-link" target="_blank" rel="noopener">TRAE</a></p>
+                            <p>App Version <span x-text="appVersion"></span></p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
 
@@ -309,6 +366,20 @@
                     <button @click="closeBookDetails()" class="close-button">×</button>
                 </div>
 
+                <!-- Action Buttons -->
+                <div class="modal-actions" style="margin-top: 12px; display: flex; gap: 8px;">
+                    <template x-if="selectedBook && selectedBook.status !== 'current'">
+                        <div style="display: contents;">
+                            <!-- Show Resume if has progress or previously abandoned -->
+                            <template x-if="(selectedBook.pages_read > 0 || selectedBook.date_abandoned) && selectedBook.status !== 'completed'">
+                                <button @click="resumeSelectedBook()" class="btn btn-primary">Resume</button>
+                            </template>
+                            <!-- Show Re-read for completed or DNF or even has progress -->
+                            <button @click="startReReadSelectedBook()" class="btn btn-secondary">Re-read</button>
+                        </div>
+                    </template>
+                </div>
+
                 <!-- Book Statistics -->
                 <div class="book-stats">
                     <div class="stat-item">
@@ -316,12 +387,20 @@
                         <div class="stat-label">Total Time</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value" x-text="getBookTotalPages(selectedBook)"></div>
+                        <div class="stat-value" x-text="formatNumber(getBookTotalPages(selectedBook))"></div>
                         <div class="stat-label">Pages Read</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-value" x-text="getAverageReadingSpeed(selectedBook)"></div>
-                        <div class="stat-label">Pages/Hour</div>
+                        <div class="stat-label">Pages per Hour</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" x-text="formatNumber(getEstimatedTotalWords(selectedBook))"></div>
+                        <div class="stat-label">Total Words Estimate</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" x-text="formatNumber(getEstimatedWordsRead(selectedBook))"></div>
+                        <div class="stat-label">Words Read</div>
                     </div>
                 </div>
 
@@ -344,6 +423,15 @@
                                     </span>
                                 </template>
                             </div>
+                        </template>
+                    </div>
+                </div>
+                <!-- Rating History -->
+                <div x-show="selectedBook?.ratings_history?.length > 0" class="rating-history-section">
+                    <h3>Rating History</h3>
+                    <div class="rating-history-list" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <template x-for="(rating, idx) in (selectedBook?.ratings_history || [])" :key="idx">
+                            <span class="rating-icon" x-text="rating === 'thumbs_up' ? '👍' : '👎'"></span>
                         </template>
                     </div>
                 </div>
@@ -568,4 +656,3 @@
     <script src="app.js"></script>
 </body>
 </html>
-
