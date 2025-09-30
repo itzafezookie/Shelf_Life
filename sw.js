@@ -8,6 +8,7 @@ const urlsToCache = [
   './manifest.json',
   './Icon_192.svg',
   './Icon_512.svg',
+  './Logo_Header.svg',
   './default-cover.svg',
   './default-cover-large.svg',
   './default-cover-small.svg',
