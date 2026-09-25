@@ -5,7 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: './', // Ensures assets load correctly on GitHub Pages under any repository subpath
+  base: process.env.GITHUB_ACTIONS ? '/Shelf_Life/' : './',
   plugins: [
     react(),
     tailwindcss(),
