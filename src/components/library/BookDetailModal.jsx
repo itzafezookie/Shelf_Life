@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Book, Trash2, PlayCircle, Star } from 'lucide-react';
+import { X, Book, Trash2, PlayCircle, Star, AlertTriangle } from 'lucide-react';
 import { useUIStore } from '../../stores/useUIStore';
 import { bookService } from '../../services/bookService';
 import confetti from 'canvas-confetti';
@@ -14,6 +14,7 @@ export function BookDetailModal({ books, currentFocusBookId, palette, isDark }) 
   const [editRating, setEditRating] = useState(0);
   const [editNotes, setEditNotes] = useState('');
   const [editThemeMode, setEditThemeMode] = useState('auto');
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
   const primaryColor = palette?.primary || '#0284c7';
   const secondaryColor = palette?.secondary || '#ec4899';
@@ -27,6 +28,7 @@ export function BookDetailModal({ books, currentFocusBookId, palette, isDark }) 
       setEditRating(book.rating || 0);
       setEditNotes(book.notes || '');
       setEditThemeMode(book.theme_mode || 'auto');
+      setIsConfirmingDelete(false);
     }
   }, [book]);
 
@@ -62,11 +64,14 @@ export function BookDetailModal({ books, currentFocusBookId, palette, isDark }) 
     closeBookDetail();
   };
 
-  const handleDelete = async () => {
-    if (window.confirm(`Are you sure you want to remove "${book.title}" from your library?`)) {
-      await bookService.deleteBook(book.id);
-      closeBookDetail();
-    }
+  const handleDeleteClick = () => {
+    setIsConfirmingDelete(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    await bookService.deleteBook(book.id);
+    setIsConfirmingDelete(false);
+    closeBookDetail();
   };
 
   const percentage = editTotal > 0 ? Math.min(100, Math.round((editPage / editTotal) * 100)) : 0;
@@ -332,7 +337,7 @@ export function BookDetailModal({ books, currentFocusBookId, palette, isDark }) 
           >
             <button
               type="button"
-              onClick={handleDelete}
+              onClick={handleDeleteClick}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
                 isDark
                   ? 'text-rose-400 hover:bg-rose-950/40 hover:text-rose-300'
@@ -369,6 +374,48 @@ export function BookDetailModal({ books, currentFocusBookId, palette, isDark }) 
           </div>
         </form>
       </div>
+
+      {/* Dedicated Styled Delete Confirmation Modal */}
+      {isConfirmingDelete && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-fade-in">
+          <div
+            className={`w-full max-w-sm rounded-2xl border p-6 text-center shadow-2xl transition-colors duration-300 ${
+              isDark
+                ? 'bg-[#181720] border-white/15 text-[#f5f5f4]'
+                : 'bg-white border-[#eae3d8] text-[#292524]'
+            }`}
+          >
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 flex items-center justify-center mx-auto mb-3 shadow-xs">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold font-editorial mb-1">Remove Book?</h3>
+            <p className={`text-xs mb-5 leading-relaxed ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+              Are you sure you want to remove <strong className={isDark ? 'text-white' : 'text-stone-800'}>"{book.title}"</strong> from your library?
+            </p>
+            <div className="flex gap-2.5">
+              <button
+                type="button"
+                onClick={() => setIsConfirmingDelete(false)}
+                className={`flex-1 py-2 text-xs rounded-xl font-semibold transition-all cursor-pointer ${
+                  isDark
+                    ? 'bg-[#22202c] text-stone-300 hover:bg-[#2c2938] border border-white/10'
+                    : 'btn-cozy btn-cozy-secondary'
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="flex-1 py-2 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition-all shadow-md shadow-rose-900/30 cursor-pointer inline-flex items-center justify-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Yes, Remove</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

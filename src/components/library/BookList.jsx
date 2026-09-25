@@ -170,17 +170,34 @@ export function BookList({ books = [], currentFocusBookId, palette, isDark }) {
           ))}
         </div>
       ) : (
-        <div className="cozy-card p-10 text-center my-6 max-w-md mx-auto">
-          <BookOpen className="w-10 h-10 text-stone-400 mx-auto mb-2" />
-          <h3 className="text-base font-bold font-editorial text-stone-800">No Books Found</h3>
-          <p className="text-xs text-stone-500 mt-1 mb-4 leading-relaxed">
+        <div
+          className={`p-10 text-center my-6 max-w-md mx-auto rounded-2xl border transition-colors duration-500 ${
+            isDark
+              ? 'bg-[#17161c] border-white/10 text-white shadow-xl'
+              : 'cozy-card text-stone-800'
+          }`}
+        >
+          <div
+            className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 border ${
+              isDark ? 'bg-[#201e28] border-white/10 text-stone-300' : 'bg-[#f7f3ec] border-[#ede7dd] text-stone-600'
+            }`}
+          >
+            <BookOpen className="w-6 h-6" style={palette?.primary ? { color: primaryColor } : undefined} />
+          </div>
+          <h3 className="text-base font-bold font-editorial">No Books Found</h3>
+          <p className={`text-xs mt-1 mb-5 leading-relaxed ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
             {books?.length === 0
               ? 'Your library is empty. Click "+ Add Book" to begin building your reading history.'
               : 'No books match the chosen filter or search term.'}
           </p>
           <button
             onClick={() => setAddBookOpen(true)}
-            className="btn-cozy btn-cozy-primary text-xs"
+            className="px-4 py-2 text-xs font-bold rounded-xl transition-all shadow-md cursor-pointer"
+            style={{
+              backgroundColor: primaryColor,
+              color: textOnPrimary,
+              boxShadow: isDark ? `0 4px 16px ${primaryColor}40` : undefined
+            }}
           >
             Add a Book
           </button>
