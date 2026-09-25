@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shelf Life - Reading Tracker</title>
+    <meta name="description" content="Track your reading progress, manage library due dates, and visualize your reading habits">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#2563eb">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="Icon_512.svg">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Alpine.js -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div id="app" x-data="shelfLifeApp()" x-init="init()">
+        <!-- Header -->
+        <header class="header">
+            <div class="container">
+                <h1 class="app-title text-h1 text-primary">
+                    <img src="./Logo_Header.svg" alt="Shelf Life" class="app-icon">
+                </h1>
+                <nav class="nav-tabs">
+                    <button 
+                        @click="currentTab = 'current'" 
+                        :class="{'active text-primary': currentTab === 'current'}"
+                        class="nav-tab text-label text-secondary">
+                        📖 Reading
+                    </button>
+                    <button 
+                        @click="currentTab = 'library'" 
+                        :class="{'active text-primary': currentTab === 'library'}"
+                        class="nav-tab text-label text-secondary">
+                        📚 Library
+                    </button>
+                    <button 
+                        @click="currentTab = 'genres'" 
+                        :class="{'active text-primary': currentTab === 'genres'}"
+                        class="nav-tab text-label text-secondary">
+                        📊 Stats
+                    </button>
+                    <button 
+                        @click="currentTab = 'settings'" 
+                        :class="{'active text-primary': currentTab === 'settings'}"
+                        class="nav-tab text-label text-secondary">
+                        ⚙️ Settings
+                    </button>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <div class="container">
+                
+                <!-- Current Book Tab -->
+                <div x-show="currentTab === 'current'" class="tab-content">
+                    
+                    <!-- No Current Book State -->
+                    <div x-show="!currentBook" class="empty-state">
+                        <div class="empty-icon">📖</div>
+                        <h2 class="text-h1">Start Your Reading Journey</h2>
+                        <p>Add a book to begin tracking your reading sessions and progress.</p>
+                        <button @click="showAddBook = true" class="btn btn-primary btn-large text-body-large">
+                            Start a New Book
+                        </button>
+                    </div>
+
+                    <!-- Current Book Display -->
+                    <div x-show="currentBook" class="current-book">
+                        <div class="book-header">
+                            <div class="book-cover">
+                                <img 
+                                    :src="currentBook?.cover_url || './default-cover-large.svg'"
+                                    :alt="currentBook?.title"
+                                    class="cover-image">
+                            </div>
+                            <div class="book-info">
+                                <h2 class="book-title text-h2" x-text="currentBook?.title"></h2>
+                                <p class="book-author" x-text="currentBook?.author"></p>
+                                <div class="book-stats">
+                                    <span class="stat text-body">
+                                        <span x-text="currentBook?.pages_read || 0"></span> / 
+                                        <span x-text="currentBook?.pages_total || 0"></span> Pages | 
+                                        <span x-text="getEstimatedTimeRemaining()"></span> Remaining
+                                    </span>
+                                </div>
+                                <!-- Progress Bar directly in book-info -->
+                                <div class="progress-bar">
+                                    <div 
+                                        class="progress-fill" 
+                                        :style="`width: ${getProgressPercentage()}%`">
+                                    </div>
+                                </div>
+                                <div class="progress-text text-body">
+                                    <span x-text="`${getProgressPercentage()}% complete`"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Reading Stats -->
+                        <div class="stats-grid">
+                            <div class="stat-card" @click="beginSpeedOverrideEdit()" style="cursor: pointer;">
+                                <div>
+                                    <div class="stat-value text-h3 text-primary" x-text="getAverageSpeed()"></div>
+                                    <div class="stat-label text-small">Pages/min <span x-show="currentBook?.override_pages_per_min" class="text-secondary">(override)</span></div>
+                                </div>
+                            </div>
+
+                            <!-- Pages/min Override Modal -->
+                            <div x-show="showSpeedOverrideModal" class="book-details-modal" @click.self="cancelSpeedOverride()">
+                                <div class="book-details-content">
+                                    <button @click="cancelSpeedOverride()" class="modal-close">×</button>
+                                    <h2 class="text-h2">Set Pages per Minute</h2>
+                                    <p class="text-body text-secondary">Enter a manual override for this book. It will be cleared automatically when a valid reading session pace is recorded.</p>
+                                    <div class="form-group">
+                                        <label class="form-label">Pages/min</label>
+                                        <input type="number" step="0.1" min="0.1" x-model.number="speedOverrideInput" class="form-input" placeholder="e.g. 0.9">
+                                    </div>
+                                    <div class="modal-actions">
+                                        <button class="btn btn-secondary" @click="cancelSpeedOverride()">Cancel</button>
+                                        <button class="btn btn-primary" @click="saveSpeedOverride()">Save</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value text-h3 text-primary" x-text="getEstimatedSessionLength()"></div>
+                                <div class="stat-label text-small">Estimated Session Length</div>
+                            </div>
+                            <div class="stat-card" x-show="currentBook?.due_date">
+                                <div class="stat-value text-h3 text-primary" x-text="getPagesPerDay()"></div>
+                                <div class="stat-label text-small">Pages/day needed</div>
+                            </div>
+                            <div class="stat-card" x-show="currentBook?.due_date">
+                                <div class="stat-value text-h3 text-primary" x-text="getTargetPageToday()"></div>
+                                <div class="stat-label text-small">Read up to page</div>
+                            </div>
+                        </div>
+
+                        <!-- Due Date Warning -->
+                        <div x-show="currentBook?.due_date && isDueDateAtRisk()" class="warning-card">
+                            ⚠️ You need to read faster to finish by your due date!
+                        </div>
+
+                        <!-- Session Controls -->
+                        <div class="session-controls">
+                            <!-- Not in session -->
+                            <div x-show="!currentSession">
+                                <button @click="startSession()" class="btn btn-primary btn-large text-body-large">
+                                    ▶️ Start Reading
+                                </button>
+                            </div>
+
+                            <!-- In session - Two column layout -->
+                            <div x-show="currentSession" class="session-layout">
+                                <div class="timestamps-column">
+                                    <div class="timestamp-header text-small text-secondary">
+                                        📅 <span x-text="formatDate(currentSession?.start_time)"></span>
+                                    </div>
+                                    <template x-for="(timestamp, index) in getSessionTimestamps()" :key="index">
+                                        <div class="timestamp-row" :class="index % 2 === 0 ? 'alternate' : ''">
+                                            <span class="timestamp-icon" x-text="timestamp.icon"></span>
+                                            <span class="timestamp-label text-small text-secondary" x-text="timestamp.label"></span>
+                                            <span class="timestamp-time text-small text-primary" x-text="timestamp.time"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                                
+                                <div class="buttons-column">
+                                    <button 
+                                        @click="togglePause()" 
+                                        class="btn btn-secondary text-body"
+                                        x-text="currentSession?.paused ? '▶️ Resume' : '⏸️ Pause'">
+                                    </button>
+                                    <button @click="stopSession()" class="btn btn-primary text-body">
+                                        ⏹️ Stop Reading
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Abandon Book Action -->
+                        <div class="abandon-action" x-show="!currentSession">
+                            <button @click="abandonCurrentBook()" class="btn btn-danger text-white">
+                                Abandon Book
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Library Tab -->
+                <div x-show="currentTab === 'library'" class="tab-content">
+                    <div class="section-header">
+                        <h2>Your Library</h2>
+                        <div class="section-actions">
+                            <button @click="showAddBook = true" class="btn btn-primary btn-small text-body">
+                                + Add Book
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div x-show="books.length === 0" class="empty-state">
+                        <div class="empty-icon">📚</div>
+                        <p>No books in your library yet.</p>
+                    </div>
+
+                    <div class="book-grid">
+                        <template x-for="book in books" :key="book.id">
+                            <div class="book-card">
+                                <div @click="selectBook(book)" class="book-card-content">
+                                    <img 
+                                :src="book.cover_url || './default-cover.svg'"
+                                :alt="book.title"
+                                class="book-card-cover">
+                                    <div class="book-card-info">
+                                        <h3 class="book-card-title" x-text="book.title"></h3>
+                                        <p class="book-card-author" x-text="book.author"></p>
+                                        <div class="book-status-row">
+                                            <div class="book-card-status" x-text="book.status"></div>
+                                            <div x-show="book.rating && book.status === 'completed'" class="book-rating">
+                                                <span x-show="book.rating === 'thumbs_up'" class="rating-icon">👍</span>
+                                                <span x-show="book.rating === 'thumbs_down'" class="rating-icon">👎</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="book-card-mini-stats">
+                                        <div class="mini-stat"><span x-text="formatNumber(book.pages_read || 0)"></span>/<span x-text="formatNumber(book.pages_total || 0)"></span> pages</div>
+                                        <div class="mini-stat"><span x-text="formatNumber(getEstimatedTotalWords(book))"></span> words</div>
+                                    </div>
+                                </div>
+                                <button @click="deleteBook(book.id)" class="delete-book-btn" title="Delete book from library">
+                                    X
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Genres Tab -->
+                <div x-show="currentTab === 'genres'" class="tab-content">
+                    <div class="section-header">
+                        <h2>Reading Genres</h2>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <canvas id="genreChart" width="400" height="400"></canvas>
+                    </div>
+
+                    <!-- Genre Filter Section -->
+                    <div x-show="selectedGenre" class="genre-filter-section">
+                        <div class="filter-header">
+                            <h3 x-text="`Books in ${selectedGenre}`"></h3>
+                            <button @click="clearGenreFilter()" class="btn btn-outline">Clear Filter</button>
+                        </div>
+                        
+                        <div x-show="filteredBooks.length === 0" class="empty-state">
+                            <div class="empty-icon">📚</div>
+                            <p>No books found for this genre.</p>
+                        </div>
+
+                        <div class="book-grid">
+                            <template x-for="book in filteredBooks" :key="book.id">
+                                <div class="book-card">
+                                    <div @click="selectBook(book)" class="book-card-content">
+                                        <img 
+                                            :src="book.cover_url || './default-cover.svg'"
+                                            :alt="book.title"
+                                            class="book-card-cover">
+                                        <div class="book-card-info">
+                                            <h3 class="book-card-title" x-text="book.title"></h3>
+                                            <p class="book-card-author" x-text="book.author"></p>
+                                            <div class="book-status-row">
+                                                <div class="book-card-status" x-text="book.status"></div>
+                                                <div x-show="book.rating && book.status === 'completed'" class="book-rating">
+                                                    <span x-show="book.rating === 'thumbs_up'" class="rating-icon">👍</span>
+                                                    <span x-show="book.rating === 'thumbs_down'" class="rating-icon">👎</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button @click="deleteBook(book.id)" class="delete-book-btn" title="Delete book from library">
+                                        X
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Tab -->
+                <div x-show="currentTab === 'settings'" class="tab-content">
+                    <div class="section-header">
+                        <h2>Settings</h2>
+                    </div>
+
+                    <div class="settings-grid" style="display: grid; grid-template-columns: 1fr; gap: 16px; max-width: 720px;">
+
+                        <div class="form-field">
+                            <label>Baseline WPM</label>
+                            <p class="text-h1">
+                                <span @click="editBaselineWPM()" class="clickable-date" x-text="baselineWPM !== null ? baselineWPM : 'Set baseline WPM'"></span>
+                                <span @click="editBaselineWPM()" class="edit-icon">✏️</span>
+                            </p>
+                            <p class="text-small text-secondary">Used for planning and estimates. You can change this anytime.</p>
+                        </div>
+
+                        <div class="section-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button @click="exportData()" class="btn btn-secondary btn-small text-body">
+                                📥 Export Data
+                            </button>
+                            <button @click="importData()" class="btn btn-outline btn-small text-body">
+                                📤 Import Data
+                            </button>
+                        </div>
+
+                        <!-- Settings Footer -->
+                        <div class="settings-footer">
+                            <p>© <span x-text="new Date().getFullYear()"></span> — All rights reserved.</p>
+                            <p>Coded by Fezuk Technologies via <a href="https://trae.ai" class="brand-link" target="_blank" rel="noopener">TRAE</a></p>
+                            <p>App Version <span x-text="appVersion"></span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Modals -->
+        
+        <!-- Book Details Modal -->
+        <div x-show="showBookDetails" class="book-details-modal" @click.self="closeBookDetails()">
+            <div class="book-details-content">
+                <div class="book-details-header">
+                    <div class="book-details-info">
+                        <h2 x-text="selectedBook?.title || 'Book Details'" class="text-h2"></h2>
+                        <p x-text="selectedBook?.author" class="text-body text-secondary"></p>
+                        <p x-text="selectedBook?.status" class="text-small text-secondary"></p>
+                        
+                        <!-- Date Started -->
+                        <p x-show="selectedBook?.date_started" x-text="selectedBook?.date_started ? `Started: ${formatDate(selectedBook.date_started)}` : ''" class="text-small text-secondary"></p>
+                        
+                        <!-- Due Date (clickable) -->
+                        <p x-show="selectedBook?.due_date" class="text-small text-secondary">
+                            Due Date: 
+                            <span @click="editDueDate(selectedBook)" class="clickable-date" x-text="selectedBook?.due_date ? formatDate(selectedBook.due_date) : ''"></span>
+                            <span @click="editDueDate(selectedBook)" class="edit-icon">✏️</span>
+                        </p>
+                        
+                        <!-- Completion Date -->
+                        <p x-show="selectedBook?.date_finished" x-text="selectedBook?.date_finished ? `Completed: ${formatDate(selectedBook.date_finished)}` : ''" class="text-small text-secondary"></p>
+                        
+                        <!-- Genre Tags -->
+                        <div x-show="selectedBook?.genres && selectedBook.genres.length > 0" class="genre-tags">
+                            <template x-for="genre in selectedBook?.genres" :key="genre">
+                                <span class="genre-tag" x-text="genre"></span>
+                            </template>
+                        </div>
+                    </div>
+                    <button @click="closeBookDetails()" class="close-button">×</button>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="modal-actions" style="margin-top: 12px; display: flex; gap: 8px;">
+                    <template x-if="selectedBook && selectedBook.status !== 'current'">
+                        <div style="display: contents;">
+                            <!-- Show Resume if has progress or previously abandoned -->
+                            <template x-if="(selectedBook.pages_read > 0 || selectedBook.date_abandoned) && selectedBook.status !== 'completed'">
+                                <button @click="resumeSelectedBook()" class="btn btn-primary">Resume</button>
+                            </template>
+                            <!-- Show Re-read for completed or DNF or even has progress -->
+                            <button @click="startReReadSelectedBook()" class="btn btn-secondary">Re-read</button>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Book Statistics -->
+                <div class="book-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" x-text="getBookTotalTime(selectedBook)"></div>
+                        <div class="stat-label">Total Time</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" x-text="formatNumber(getBookTotalPages(selectedBook))"></div>
+                        <div class="stat-label">Pages Read</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" x-text="getAverageReadingSpeed(selectedBook)"></div>
+                        <div class="stat-label">Pages per Hour</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" x-text="formatNumber(getEstimatedTotalWords(selectedBook))"></div>
+                        <div class="stat-label">Total Words Estimate</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" x-text="formatNumber(getEstimatedWordsRead(selectedBook))"></div>
+                        <div class="stat-label">Words Read</div>
+                    </div>
+                </div>
+
+                <!-- Session History -->
+                <div class="session-history-section">
+                    <h3>Reading Sessions</h3>
+                    <div x-show="getBookSessions(selectedBook?.id).length === 0" class="no-sessions">
+                        <p>No reading sessions recorded yet.</p>
+                    </div>
+                    <div class="session-list">
+                        <template x-for="session in getBookSessions(selectedBook?.id)" :key="session.id">
+                            <div class="session-item-compact">
+                                <span x-text="formatDate(session.start_time)"></span>
+                                <span class="session-separator">|</span>
+                                <span>Duration: <span x-text="formatSessionDuration(session)"></span></span>
+                                <template x-if="session.total_pages > 0">
+                                    <span>
+                                        <span class="session-separator">|</span>
+                                        <span>Pages: <span x-text="session.total_pages"></span></span>
+                                    </span>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                <!-- Rating History -->
+                <div x-show="selectedBook?.ratings_history?.length > 0" class="rating-history-section">
+                    <h3>Rating History</h3>
+                    <div class="rating-history-list" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <template x-for="(rating, idx) in (selectedBook?.ratings_history || [])" :key="idx">
+                            <span class="rating-icon" x-text="rating === 'thumbs_up' ? '👍' : '👎'"></span>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Add Book Modal -->
+        <div x-show="showAddBook" class="book-details-modal" @click.self="showAddBook = false">
+            <div class="book-details-content">
+                <button @click="showAddBook = false" class="modal-close">×</button>
+                <h2 class="text-h2">Add a New Book</h2>
+                
+                <!-- Search Section -->
+                <div class="book-search-section">
+                    <div class="search-input-group">
+                        <input 
+                            type="text" 
+                            x-model="searchQuery"
+                            @keyup.enter="searchBooks()"
+                            placeholder="Search by title, author, ISBN..."
+                            class="search-input">
+                        <button @click="searchBooks()" class="btn btn-primary">Search</button>
+                    </div>
+                    
+                    <!-- Loading State -->
+                    <div x-show="searchLoading" class="search-loading">
+                        <p>Searching Open Library...</p>
+                    </div>
+                    
+                    <!-- Search Results -->
+                    <div x-show="searchResults.length > 0" class="search-results">
+                        <h3 class="text-h3">Search Results</h3>
+                        <div class="search-results-list">
+                            <template x-for="book in searchResults" :key="book.key">
+                                <div class="search-result-item" @click="selectSearchResult(book)">
+                                    <div class="search-result-cover">
+                                        <img 
+                                            :src="book.cover_url || './default-cover-small.svg'" 
+                                            :alt="book.title"
+                                            class="search-cover-image">
+                                    </div>
+                                    <div class="search-result-info">
+                                        <h4 class="search-result-title" x-text="book.title"></h4>
+                                        <p class="search-result-author" x-text="book.author"></p>
+                                        <p class="search-result-year" x-text="book.first_publish_year"></p>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    
+                    <!-- No Results -->
+                    <div x-show="searchResults.length === 0 && searchQuery && !searchLoading" class="no-results">
+                        <p>No books found. Try a different search term.</p>
+                    </div>
+                </div>
+                
+                <!-- Selected Book Details -->
+                <div x-show="selectedSearchBook?.title" class="selected-book-section">
+                    <h3 class="text-h3">Book Details</h3>
+                    <div class="selected-book-details">
+                        <div class="selected-book-cover">
+                            <img 
+                                :src="selectedSearchBook?.cover_url || './default-cover-large.svg'" 
+                                :alt="selectedSearchBook?.title"
+                                class="selected-cover-image">
+                        </div>
+                        <div class="selected-book-info">
+                            <h4 class="selected-book-title" x-text="selectedSearchBook?.title"></h4>
+                            <p class="selected-book-author" x-text="selectedSearchBook?.author"></p>
+                            <div class="selected-book-description" x-show="selectedSearchBook?.description">
+                                <p x-text="selectedSearchBook?.description"></p>
+                            </div>
+                            
+                            <!-- Editable Fields -->
+                            <div class="book-form-fields" x-show="selectedSearchBook?.title">
+                                <div class="form-field">
+                                    <label>Total Pages:</label>
+                                    <input 
+                                        type="number" 
+                                        x-model="selectedSearchBook.pages_total"
+                                        placeholder="Enter total pages"
+                                        class="form-input">
+                                </div>
+                                
+                                <div class="form-field">
+                                    <label for="genre-input">Add Genre:</label>
+                                    <div class="genre-input-container">
+                                        <input 
+                                            type="text" 
+                                            id="genre-input"
+                                            x-model="newGenre"
+                                            @keydown.enter="addGenre()"
+                                            placeholder="Enter a genre (e.g., Fantasy, Mystery, Romance)"
+                                            class="form-input">
+                                        <button 
+                                            type="button" 
+                                            @click="addGenre()"
+                                            class="btn btn-secondary"
+                                            :disabled="!newGenre?.trim()">
+                                            Add
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Selected Genres Display -->
+                                    <div x-show="selectedSearchBook.selected_genres?.length > 0" class="selected-genres">
+                                        <label>Selected Genres:</label>
+                                        <div class="genre-tags">
+                                            <template x-for="genre in selectedSearchBook.selected_genres" :key="genre">
+                                                <span class="genre-tag">
+                                                    <span x-text="genre"></span>
+                                                    <button 
+                                                        type="button" 
+                                                        @click="removeGenre(genre)"
+                                                        class="remove-genre">×</button>
+                                                </span>
+                                            </template>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Existing Genres Dropdown (if any exist) -->
+                                    <div x-show="genres.length > 0" class="form-field">
+                                        <label>Or select from existing genres:</label>
+                                        <select 
+                                            x-model="selectedExistingGenre"
+                                            @change="addExistingGenre()"
+                                            class="form-input">
+                                            <option value="">Choose an existing genre...</option>
+                                            <template x-for="genre in availableGenres" :key="genre.name">
+                                                <option :value="genre.name" x-text="genre.name"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-field">
+                                    <label>Library Due Date (optional):</label>
+                                    <input 
+                                        type="date" 
+                                        x-model="selectedSearchBook.due_date"
+                                        class="form-input">
+                                </div>
+                            </div>
+                            
+                            <div class="modal-actions">
+                                <button @click="addBookToLibrary()" class="btn btn-primary">Add as Current Book</button>
+                                <button @click="clearSelection()" class="btn btn-secondary">Back to Search</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Rating Modal -->
+        <div x-show="showRatingModal" class="book-details-modal" @click.self="showRatingModal = false">
+            <div class="book-details-content">
+                <button @click="showRatingModal = false" class="modal-close">×</button>
+                <h2 class="text-h2">📖 Book Completed!</h2>
+                <p class="text-body" x-text="`Congratulations on finishing ${completedBookTitle}!`"></p>
+                <p class="text-body">How did you like this book?</p>
+                
+                <div class="rating-buttons">
+                    <button @click="rateBook(true)" class="btn btn-rating btn-thumbs-up">
+                        👍 Thumbs Up
+                    </button>
+                    <button @click="rateBook(false)" class="btn btn-rating btn-thumbs-down">
+                        👎 Thumbs Down
+                    </button>
+                </div>
+                
+                <div class="modal-actions">
+                    <button @click="skipRating()" class="btn btn-secondary">Skip Rating</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Session Completion Modal -->
+        <div x-show="showSessionCompletion" class="book-details-modal" @click.self="cancelSessionCompletion()">
+            <div class="book-details-content">
+                <button @click="cancelSessionCompletion()" class="modal-close">×</button>
+                <h2 class="text-h2">Finish Reading Session</h2>
+                
+                <div class="form-group">
+                    <label class="form-label">What page did you read up to?</label>
+                    <p class="text-small text-secondary" x-text="`You started at page ${currentBook?.pages_read + 1}`"></p>
+                    <input 
+                        type="number" 
+                        x-model="sessionCompletionData.currentPage" 
+                        class="form-input"
+                        :min="currentBook?.pages_read + 1"
+                        :max="currentBook?.pages_total"
+                        placeholder="Enter current page"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label class="checkbox-container">
+                        <input 
+                            type="checkbox" 
+                            x-model="sessionCompletionData.excludeFromPace"
+                        >
+                        <span class="checkmark"></span>
+                        <span class="checkbox-label">
+                            Exclude from pace calculation
+                            <small class="text-small text-secondary">
+                                Check this if you had distractions and didn't read at your normal pace
+                            </small>
+                        </span>
+                    </label>
+                </div>
+                
+                <div class="modal-actions">
+                    <button @click="cancelSessionCompletion()" class="btn btn-secondary">Cancel</button>
+                    <button @click="completeSession()" class="btn btn-primary">Finish Session</button>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
