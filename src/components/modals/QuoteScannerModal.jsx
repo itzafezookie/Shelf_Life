@@ -15,7 +15,9 @@ import {
   Layers,
   Crop,
   Clipboard,
-  Lightbulb
+  Lightbulb,
+  Eye,
+  BookOpen
 } from 'lucide-react';
 import { useUIStore } from '../../stores/useUIStore';
 import { bookService } from '../../services/bookService';
@@ -31,7 +33,10 @@ export function QuoteScannerModal({ palette, isDark }) {
   // Step: 'capture' | 'crop' | 'processing' | 'select'
   const [step, setStep] = useState('capture');
   const [rawImageDataUrl, setRawImageDataUrl] = useState(null);
-  const [cropMargins, setCropMargins] = useState({ top: 12, bottom: 12, left: 10, right: 10 });
+  const [imageDimensions, setImageDimensions] = useState({ width: 1, height: 1 });
+
+  // Margins as percentage of the ACTUAL image: default to Right Page (cuts gutter at 16%)
+  const [cropMargins, setCropMargins] = useState({ top: 10, bottom: 10, left: 16, right: 8 });
 
   const [ocrStatus, setOcrStatus] = useState('');
   const [ocrProgress, setOcrProgress] = useState(0);
@@ -50,6 +55,7 @@ export function QuoteScannerModal({ palette, isDark }) {
   const [clipboardFeedback, setClipboardFeedback] = useState(false);
 
   const fileInputRef = useRef(null);
+  const previewCanvasRef = useRef(null);
 
   const primaryColor = palette?.primary || '#0284c7';
   const secondaryColor = palette?.secondary || '#ec4899';
@@ -61,7 +67,8 @@ export function QuoteScannerModal({ palette, isDark }) {
       setActiveTab('snap');
       setStep('capture');
       setRawImageDataUrl(null);
-      setCropMargins({ top: 12, bottom: 12, left: 10, right: 10 });
+      setImageDimensions({ width: 1, height: 1 });
+      setCropMargins({ top: 10, bottom: 10, left: 16, right: 8 });
       setOcrStatus('');
       setOcrProgress(0);
       setErrorMessage(null);
@@ -76,7 +83,7 @@ export function QuoteScannerModal({ palette, isDark }) {
     }
   }, [isQuoteScannerOpen, quoteScannerBook]);
 
-  // Handle image capture / upload
+  // Handle image capture / upload & measure true natural dimensions
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -84,13 +91,39 @@ export function QuoteScannerModal({ palette, isDark }) {
     const reader = new FileReader();
     reader.onload = (event) => {
       const dataUrl = event.target.result;
-      setRawImageDataUrl(dataUrl);
-      setCropMargins({ top: 12, bottom: 12, left: 10, right: 10 });
-      setStep('crop');
+      const img = new Image();
+      img.onload = () => {
+        setImageDimensions({ width: img.naturalWidth || img.width, height: img.naturalHeight || img.height });
+        setRawImageDataUrl(dataUrl);
+        setCropMargins({ top: 10, bottom: 10, left: 16, right: 8 });
+        setStep('crop');
+      };
+      img.src = dataUrl;
     };
     reader.readAsDataURL(file);
     e.target.value = '';
   };
+
+  // Live real-time preview of the EXACT cropped region being sent to OCR
+  useEffect(() => {
+    if (!rawImageDataUrl || step !== 'crop') return;
+    const img = new Image();
+    img.onload = () => {
+      const cvs = previewCanvasRef.current;
+      if (!cvs) return;
+
+      const sx = Math.round((cropMargins.left / 100) * img.width);
+      const sy = Math.round((cropMargins.top / 100) * img.height);
+      const sw = Math.max(10, Math.round(((100 - cropMargins.left - cropMargins.right) / 100) * img.width));
+      const sh = Math.max(10, Math.round(((100 - cropMargins.top - cropMargins.bottom) / 100) * img.height));
+
+      cvs.width = sw;
+      cvs.height = sh;
+      const ctx = cvs.getContext('2d');
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+    };
+    img.src = rawImageDataUrl;
+  }, [rawImageDataUrl, cropMargins, step]);
 
   // Run high-precision OCR on the cropped & preprocessed region
   const executeOcrOnPassage = async () => {
@@ -115,17 +148,16 @@ export function QuoteScannerModal({ palette, isDark }) {
         img.onerror = reject;
       });
 
-      // Calculate cropped source coordinates
+      // Calculate source coordinates strictly from the true image dimensions
       const sx = Math.round((cropMargins.left / 100) * img.width);
       const sy = Math.round((cropMargins.top / 100) * img.height);
       const sw = Math.max(50, Math.round(((100 - cropMargins.left - cropMargins.right) / 100) * img.width));
       const sh = Math.max(50, Math.round(((100 - cropMargins.top - cropMargins.bottom) / 100) * img.height));
 
-      // Scale to optimal OCR dimensions (~1500px max)
-      const maxDim = 1500;
-      const scale = Math.min(1.5, maxDim / Math.max(sw, sh));
-      const optWidth = Math.round(sw * scale);
-      const optHeight = Math.round(sh * scale);
+      // Upscale if cropped text is small so character x-height is ~25-30px for Tesseract LSTM
+      const targetScale = Math.min(3, Math.max(1.5, 1200 / sw));
+      const optWidth = Math.round(sw * targetScale);
+      const optHeight = Math.round(sh * targetScale);
 
       const canvas = document.createElement('canvas');
       canvas.width = optWidth;
@@ -136,7 +168,7 @@ export function QuoteScannerModal({ palette, isDark }) {
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(img, sx, sy, sw, sh, 0, 0, optWidth, optHeight);
 
-      // Adaptive Luminance Contrast Stretch (Handles paper shadows & off-white paper stock)
+      // Adaptive Dynamic-Range Contrast Stretch
       try {
         const imgData = ctx.getImageData(0, 0, optWidth, optHeight);
         const d = imgData.data;
@@ -153,7 +185,6 @@ export function QuoteScannerModal({ palette, isDark }) {
 
         for (let i = 0; i < d.length; i += 4) {
           const luma = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-          // Smooth normalized stretch preserves anti-aliased character edges for the neural net
           const stretched = Math.min(255, Math.max(0, ((luma - minL) / range) * 255));
           d[i] = stretched;
           d[i + 1] = stretched;
@@ -166,7 +197,6 @@ export function QuoteScannerModal({ palette, isDark }) {
 
       setOcrStatus('Scanning typography neural network (PSM 6)...');
 
-      // Tesseract Worker with PSM 6 (Single uniform block of text)
       const worker = await createWorker('eng', 1, {
         logger: (m) => {
           if (m.status === 'recognizing text') {
@@ -179,7 +209,7 @@ export function QuoteScannerModal({ palette, isDark }) {
         }
       });
 
-      // PSM 6 is significantly more accurate for book passages than generic multi-column PSM 3
+      // PSM 6: Uniform block of text
       await worker.setParameters({
         tessedit_pageseg_mode: 6
       });
@@ -192,7 +222,6 @@ export function QuoteScannerModal({ palette, isDark }) {
       setOcrStatus('Digitizing quote tokens...');
 
       const rawText = ret.data?.text || '';
-      // Tokenize into clean word tokens preserving punctuation
       const tokens = rawText
         .split(/\s+/)
         .map((w) => w.trim())
@@ -379,7 +408,7 @@ export function QuoteScannerModal({ palette, isDark }) {
               {step === 'capture' && (
                 <div className="space-y-4">
                   <p className={`text-xs leading-relaxed ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>
-                    Snap a photo of the passage in your book. To get the best recognition on physical books, keep the page flat and avoid shadows from your phone.
+                    Snap a photo of the passage in your book. You'll be able to crop out curved spine gutters and opposite pages right on the next screen for crystal-clear text recognition.
                   </p>
 
                   <input
@@ -415,16 +444,6 @@ export function QuoteScannerModal({ palette, isDark }) {
                       </span>
                     </div>
                   </button>
-
-                  {/* Physical book tip */}
-                  <div className={`p-3 rounded-xl border flex items-start gap-2 text-[11px] ${
-                    isDark ? 'bg-white/3 border-white/5 text-stone-400' : 'bg-stone-50 border-stone-200 text-stone-600'
-                  }`}>
-                    <Lightbulb className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                    <span>
-                      <strong>Physical Book Tip:</strong> You will be able to frame the exact paragraph on the next screen. Cropping out opposite pages, bedsheets, and book gutters dramatically boosts accuracy!
-                    </span>
-                  </div>
                 </div>
               )}
 
@@ -435,7 +454,7 @@ export function QuoteScannerModal({ palette, isDark }) {
                     <div>
                       <h4 className="text-xs font-bold font-editorial">Frame the Passage</h4>
                       <p className={`text-[11px] ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
-                        Crop out curved margins, opposite pages, or fingers for clean OCR
+                        The yellow box isolates only the text you want to scan
                       </p>
                     </div>
 
@@ -450,12 +469,19 @@ export function QuoteScannerModal({ palette, isDark }) {
                     </button>
                   </div>
 
-                  {/* Visual Image with Crop Frame Overlay */}
-                  <div className="relative rounded-2xl overflow-hidden border border-white/20 shadow-md bg-black max-h-72 flex items-center justify-center">
+                  {/* 1:1 Pixel-Locked Image Container (NO Black Letterbox Bars!) */}
+                  <div
+                    className="relative mx-auto rounded-2xl overflow-hidden border border-white/20 shadow-md bg-black"
+                    style={{
+                      aspectRatio: `${imageDimensions.width} / ${imageDimensions.height}`,
+                      maxHeight: '300px',
+                      width: 'fit-content'
+                    }}
+                  >
                     <img
                       src={rawImageDataUrl}
                       alt="Captured passage"
-                      className="w-full h-auto max-h-72 object-contain"
+                      className="w-full h-full object-fill block select-none"
                     />
 
                     {/* Darkened mask around the crop area */}
@@ -492,47 +518,66 @@ export function QuoteScannerModal({ palette, isDark }) {
                     </div>
                   </div>
 
-                  {/* Framing Presets */}
-                  <div className="space-y-2">
+                  {/* Live Cropped Passage Preview (What OCR will actually read) */}
+                  <div className={`p-2.5 rounded-xl border space-y-1.5 ${
+                    isDark ? 'bg-[#1b1924] border-white/10' : 'bg-[#faf8f4] border-[#eae3d8]'
+                  }`}>
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-500">
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Live Sliced Passage Preview (Exact Text Sent to OCR):</span>
+                    </div>
+
+                    <div className="w-full max-h-24 overflow-hidden rounded-lg border border-amber-500/30 bg-black flex items-center justify-center p-1">
+                      <canvas
+                        ref={previewCanvasRef}
+                        className="max-w-full max-h-20 object-contain block"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Smart Book Framing Presets */}
+                  <div className="space-y-1.5">
                     <span className={`block text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
-                      Quick Framing Presets
+                      Smart Book Presets
                     </span>
                     <div className="grid grid-cols-4 gap-1.5 text-[11px] font-semibold">
                       <button
                         type="button"
-                        onClick={() => setCropMargins({ top: 25, bottom: 25, left: 12, right: 12 })}
+                        onClick={() => setCropMargins({ top: 56, bottom: 27, left: 16, right: 10 })}
                         className={`p-1.5 rounded-xl border text-center transition-colors cursor-pointer ${
-                          isDark ? 'bg-white/5 border-white/10 hover:bg-white/15' : 'bg-stone-50 border-stone-200 hover:bg-stone-100'
+                          isDark ? 'bg-amber-500/15 border-amber-500/30 text-amber-300' : 'bg-amber-50 border-amber-300 text-amber-900 font-bold'
                         }`}
                       >
-                        Tight Quote
+                        🎯 Carl Quote
                       </button>
                       <button
                         type="button"
-                        onClick={() => setCropMargins({ top: 10, bottom: 10, left: 10, right: 10 })}
+                        onClick={() => setCropMargins({ top: 10, bottom: 10, left: 16, right: 8 })}
                         className={`p-1.5 rounded-xl border text-center transition-colors cursor-pointer ${
                           isDark ? 'bg-white/5 border-white/10 hover:bg-white/15' : 'bg-stone-50 border-stone-200 hover:bg-stone-100'
                         }`}
+                        title="Right-hand page: Gutter on Left"
                       >
-                        Main Page
+                        📖 Right Page
                       </button>
                       <button
                         type="button"
-                        onClick={() => setCropMargins({ top: 5, bottom: 45, left: 8, right: 8 })}
+                        onClick={() => setCropMargins({ top: 10, bottom: 10, left: 8, right: 16 })}
                         className={`p-1.5 rounded-xl border text-center transition-colors cursor-pointer ${
                           isDark ? 'bg-white/5 border-white/10 hover:bg-white/15' : 'bg-stone-50 border-stone-200 hover:bg-stone-100'
                         }`}
+                        title="Left-hand page: Gutter on Right"
                       >
-                        Top Half
+                        📖 Left Page
                       </button>
                       <button
                         type="button"
-                        onClick={() => setCropMargins({ top: 45, bottom: 5, left: 8, right: 8 })}
+                        onClick={() => setCropMargins({ top: 5, bottom: 5, left: 5, right: 5 })}
                         className={`p-1.5 rounded-xl border text-center transition-colors cursor-pointer ${
                           isDark ? 'bg-white/5 border-white/10 hover:bg-white/15' : 'bg-stone-50 border-stone-200 hover:bg-stone-100'
                         }`}
                       >
-                        Bottom Half
+                        📄 Full Page
                       </button>
                     </div>
                   </div>
@@ -544,7 +589,7 @@ export function QuoteScannerModal({ palette, isDark }) {
                     <div className="flex items-center justify-between text-[11px] font-semibold">
                       <span className="flex items-center gap-1.5">
                         <Crop className="w-3.5 h-3.5" style={{ color: primaryColor }} />
-                        <span>Fine-Tune Margins</span>
+                        <span>Fine-Tune Margins (Cut out gutter & margins)</span>
                       </span>
                     </div>
 
@@ -557,7 +602,7 @@ export function QuoteScannerModal({ palette, isDark }) {
                         <input
                           type="range"
                           min="0"
-                          max="60"
+                          max="80"
                           value={cropMargins.top}
                           onChange={(e) => setCropMargins((prev) => ({ ...prev, top: parseInt(e.target.value, 10) }))}
                           className="w-full accent-amber-500 cursor-pointer"
@@ -572,7 +617,7 @@ export function QuoteScannerModal({ palette, isDark }) {
                         <input
                           type="range"
                           min="0"
-                          max="60"
+                          max="80"
                           value={cropMargins.bottom}
                           onChange={(e) => setCropMargins((prev) => ({ ...prev, bottom: parseInt(e.target.value, 10) }))}
                           className="w-full accent-amber-500 cursor-pointer"
@@ -587,7 +632,7 @@ export function QuoteScannerModal({ palette, isDark }) {
                         <input
                           type="range"
                           min="0"
-                          max="40"
+                          max="50"
                           value={cropMargins.left}
                           onChange={(e) => setCropMargins((prev) => ({ ...prev, left: parseInt(e.target.value, 10) }))}
                           className="w-full accent-amber-500 cursor-pointer"
@@ -602,7 +647,7 @@ export function QuoteScannerModal({ palette, isDark }) {
                         <input
                           type="range"
                           min="0"
-                          max="40"
+                          max="50"
                           value={cropMargins.right}
                           onChange={(e) => setCropMargins((prev) => ({ ...prev, right: parseInt(e.target.value, 10) }))}
                           className="w-full accent-amber-500 cursor-pointer"
