@@ -2,7 +2,7 @@
 
 > **AUTO-GENERATED SYSTEM INDEX** — DO NOT EDIT MANUALLY.
 > Regenerate with `npm run index` or automatically via `npm run build`.
-> Last Index Run: 2026-09-26T13:36:42.754Z
+> Last Index Run: 2026-09-26T15:43:18.131Z
 
 ## 🎯 1. System Sources of Truth (Singletons, Engines & Stores)
 
@@ -65,7 +65,7 @@ graph TD
 
 ## 📦 3. Module Catalog & Architectural Role
 
-Total workspace files tracked: **76** | Total LOC: **12717**
+Total workspace files tracked: **76** | Total LOC: **13144**
 
 | File | LOC | Type / Architectural Role | Exports & Public Symbols | Storage / APIs |
 | :--- | :--- | :--- | :--- | :--- |
@@ -88,7 +88,7 @@ Total workspace files tracked: **76** | Total LOC: **12717**
 | [`public/Logo_Header.svg`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/public/Logo_Header.svg) | 120 | Static Asset | — | — |
 | [`README.md`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/README.md) | 143 | Static Asset | — | — |
 | [`scripts/generate-index.js`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/scripts/generate-index.js) | 261 | Build / Indexing Automation | `walkDir()`, `analyzeFile()`, `generateMarkdownIndex()` | Open Library REST API |
-| [`src/App.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/App.jsx) | 233 | Root Application Shell | `App()`, `loadPalette()`, `initApp()` | — |
+| [`src/App.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/App.jsx) | 235 | Root Application Shell | `App()`, `loadPalette()`, `initApp()` | — |
 | [`src/components/analytics/GenreBreakdown.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/analytics/GenreBreakdown.jsx) | 101 | Dumb UI Presentation | `GenreBreakdown()` | — |
 | [`src/components/analytics/ReadingTrends.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/analytics/ReadingTrends.jsx) | 153 | Dumb UI Presentation | `ReadingTrends()` | — |
 | [`src/components/analytics/StatsOverview.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/analytics/StatsOverview.jsx) | 99 | Dumb UI Presentation | `StatsOverview()` | — |
@@ -106,7 +106,7 @@ Total workspace files tracked: **76** | Total LOC: **12717**
 | [`src/components/layout/ShelfLifeLogo.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/layout/ShelfLifeLogo.jsx) | 136 | Dumb UI Presentation | `ShelfLifeLogo()` | — |
 | [`src/components/library/AddBookModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/AddBookModal.jsx) | 617 | Dumb UI Presentation | `AddBookModal()`, `handleSearch()`, `handleSelectBook()`, `handleStartManual()` | Open Library REST API |
 | [`src/components/library/BookCard.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/BookCard.jsx) | 188 | Dumb UI Presentation | `BookCard()`, `handleSetFocus()`, `getStatusBadge()` | — |
-| [`src/components/library/BookDetailModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/BookDetailModal.jsx) | 470 | Dumb UI Presentation | `BookDetailModal()`, `handleSave()`, `handleSetFocus()`, `handleDeleteClick()` | — |
+| [`src/components/library/BookDetailModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/BookDetailModal.jsx) | 895 | Dumb UI Presentation | `BookDetailModal()`, `formatDate()`, `formatSessionTime()`, `handleRatingChange()` | — |
 | [`src/components/library/BookList.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/BookList.jsx) | 209 | Dumb UI Presentation | `BookList()` | — |
 | [`src/components/mobile/MobileSheetPanel.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/mobile/MobileSheetPanel.jsx) | 397 | Dumb UI Presentation | `MobileSheetPanel()`, `handleStart()`, `handlePause()`, `handleResume()` | — |
 | [`src/components/modals/CustomColorPicker.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/CustomColorPicker.jsx) | 260 | Dumb UI Presentation | `hexToHsl()`, `hslToHex()`, `f()`, `CustomColorPicker()` | — |
@@ -150,7 +150,7 @@ Total workspace files tracked: **76** | Total LOC: **12717**
 
 ### ⚠️ 400-LOC Ceiling Violations
 - [`src/components/library/AddBookModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/AddBookModal.jsx) (617 lines) — *Must be decomposed into smaller sub-components.*
-- [`src/components/library/BookDetailModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/BookDetailModal.jsx) (470 lines) — *Must be decomposed into smaller sub-components.*
+- [`src/components/library/BookDetailModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/BookDetailModal.jsx) (895 lines) — *Must be decomposed into smaller sub-components.*
 - [`src/components/modals/PageScannerModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/PageScannerModal.jsx) (696 lines) — *Must be decomposed into smaller sub-components.*
 - [`src/components/modals/ReadingSpeedTestModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/ReadingSpeedTestModal.jsx) (602 lines) — *Must be decomposed into smaller sub-components.*
 

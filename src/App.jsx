@@ -211,6 +211,8 @@ export function App() {
       <AddBookModal palette={bookPalette} isDark={isDarkApp} />
       <BookDetailModal
         books={books}
+        sessions={sessions}
+        baselineWPM={baselineWPM}
         currentFocusBookId={currentFocusBookId}
         palette={bookPalette}
         isDark={isDarkApp}
