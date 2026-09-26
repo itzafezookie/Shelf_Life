@@ -199,7 +199,7 @@ export function PageScannerModal({ palette, isDark }) {
     };
   }, [isLiveCameraActive, cameraFacing]);
 
-  const captureFromVideo = () => {
+  const captureFromVideo = async () => {
     if (!videoRef.current) return;
     const video = videoRef.current;
 
@@ -209,15 +209,77 @@ export function PageScannerModal({ palette, isDark }) {
       return;
     }
 
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+    try {
+      let captureCanvas = null;
+      const track = streamRef.current?.getVideoTracks()?.[0];
 
-    stopLiveCamera();
-    processImage(dataUrl);
+      // 1. Try ImageCapture API for full-sensor camera photo with autofocus
+      if (window.ImageCapture && track) {
+        try {
+          const imageCapture = new window.ImageCapture(track);
+          const blob = await imageCapture.takePhoto();
+          const imgBitmap = await createImageBitmap(blob);
+          const fullCanvas = document.createElement('canvas');
+          fullCanvas.width = imgBitmap.width;
+          fullCanvas.height = imgBitmap.height;
+          const fCtx = fullCanvas.getContext('2d');
+          fCtx.drawImage(imgBitmap, 0, 0);
+          captureCanvas = fullCanvas;
+        } catch (e) {
+          console.warn('[PageScanner] ImageCapture takePhoto fallback:', e);
+        }
+      }
+
+      // 2. Fallback to video frame
+      if (!captureCanvas) {
+        const fullCanvas = document.createElement('canvas');
+        fullCanvas.width = video.videoWidth;
+        fullCanvas.height = video.videoHeight;
+        const fCtx = fullCanvas.getContext('2d');
+        fCtx.drawImage(video, 0, 0);
+        captureCanvas = fullCanvas;
+      }
+
+      // 3. Coordinate mapping: crop to what was actually inside the dashed guide on screen
+      const container = video.parentElement;
+      const cWidth = container?.clientWidth || 300;
+      const cHeight = container?.clientHeight || 400;
+      const guidePadding = 24; // matches inset-6 (1.5rem = 24px)
+
+      const guideLeft = guidePadding;
+      const guideTop = guidePadding;
+      const guideW = Math.max(50, cWidth - guidePadding * 2);
+      const guideH = Math.max(50, cHeight - guidePadding * 2);
+
+      const imgWidth = captureCanvas.width;
+      const imgHeight = captureCanvas.height;
+
+      // Handle object-cover scaling ratio
+      const scale = Math.max(cWidth / imgWidth, cHeight / imgHeight);
+      const renderedW = imgWidth * scale;
+      const renderedH = imgHeight * scale;
+      const offsetX = (renderedW - cWidth) / 2;
+      const offsetY = (renderedH - cHeight) / 2;
+
+      const cropX = Math.max(0, Math.round((guideLeft + offsetX) / scale));
+      const cropY = Math.max(0, Math.round((guideTop + offsetY) / scale));
+      const cropW = Math.min(imgWidth - cropX, Math.round(guideW / scale));
+      const cropH = Math.min(imgHeight - cropY, Math.round(guideH / scale));
+
+      const croppedCanvas = document.createElement('canvas');
+      croppedCanvas.width = cropW;
+      croppedCanvas.height = cropH;
+      const cCtx = croppedCanvas.getContext('2d');
+      cCtx.drawImage(captureCanvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+      const dataUrl = croppedCanvas.toDataURL('image/jpeg', 0.95);
+      stopLiveCamera();
+      processImage(dataUrl);
+    } catch (err) {
+      console.error('[PageScanner] Capture error:', err);
+      stopLiveCamera();
+      setErrorMessage('Could not capture viewfinder frame. Please try "Snap / Upload Photo".');
+    }
   };
 
   const handleFileChange = (e) => {
@@ -233,7 +295,7 @@ export function PageScannerModal({ palette, isDark }) {
     e.target.value = '';
   };
 
-  // Preprocess image on canvas (crop margins, enhance contrast) and run OCR with smooth progress
+  // Preprocess image on canvas (upscale to optimal OCR resolution, enhance contrast) and run OCR
   const processImage = async (dataUrl) => {
     setImagePreview(dataUrl);
     setStep('processing');
@@ -257,16 +319,41 @@ export function PageScannerModal({ palette, isDark }) {
         img.onerror = reject;
       });
 
-      // Crop top 6% (header/chapter title) and bottom 6% (page numbers/running footers)
+      // Scale to optimal OCR resolution (book page x-height sweet spot: ~2400px height)
+      const targetScale = Math.min(3, Math.max(1, 2400 / img.height));
+      const optWidth = Math.round(img.width * targetScale);
+      const optHeight = Math.round(img.height * targetScale);
+
       const canvas = document.createElement('canvas');
-      const cropTop = Math.floor(img.height * 0.06);
-      const cropBottom = Math.floor(img.height * 0.06);
-      const targetHeight = Math.max(100, img.height - cropTop - cropBottom);
-      canvas.width = img.width;
-      canvas.height = targetHeight;
+      canvas.width = optWidth;
+      canvas.height = optHeight;
 
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, cropTop, img.width, targetHeight, 0, 0, img.width, targetHeight);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, optWidth, optHeight);
+
+      // Contrast enhancement pass to sharpen print ink against paper
+      try {
+        const imgData = ctx.getImageData(0, 0, optWidth, optHeight);
+        const d = imgData.data;
+        for (let i = 0; i < d.length; i += 4) {
+          const luma = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+          // S-curve contrast boost
+          let val;
+          if (luma < 128) {
+            val = (luma * luma) / 128; // deepen ink
+          } else {
+            val = 255 - ((255 - luma) * (255 - luma)) / 128; // brighten paper
+          }
+          d[i] = val;
+          d[i + 1] = val;
+          d[i + 2] = val;
+        }
+        ctx.putImageData(imgData, 0, 0);
+      } catch (procErr) {
+        console.warn('[PageScanner] Image preprocessing fallback:', procErr);
+      }
 
       setOcrStatus('Analyzing typography lines & characters...');
 
