@@ -18,7 +18,9 @@ import {
   Bookmark,
   MessageSquare,
   Check,
-  Share2
+  Share2,
+  Ban,
+  RotateCcw
 } from 'lucide-react';
 import { useUIStore } from '../../stores/useUIStore';
 import { bookService } from '../../services/bookService';
@@ -57,6 +59,7 @@ export function BookDetailModal({
   const [editRating, setEditRating] = useState(0);
   const [editNotes, setEditNotes] = useState('');
   const [editThemeMode, setEditThemeMode] = useState('auto');
+  const [editStatus, setEditStatus] = useState('reading');
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [deletingSessionId, setDeletingSessionId] = useState(null);
 
@@ -76,6 +79,7 @@ export function BookDetailModal({
       setEditRating(book.rating || 0);
       setEditNotes(book.notes || '');
       setEditThemeMode(book.theme_mode || 'auto');
+      setEditStatus(book.status || 'reading');
       setIsConfirmingDelete(false);
       setDeletingSessionId(null);
     }
@@ -151,7 +155,8 @@ export function BookDetailModal({
       due_date: editDueDate,
       rating: editRating || null,
       notes: editNotes,
-      theme_mode: editThemeMode
+      theme_mode: editThemeMode,
+      status: editStatus
     });
 
     if (!wasCompleted && isNowCompleted) {
@@ -170,6 +175,14 @@ export function BookDetailModal({
     await bookService.deleteBook(book.id);
     setIsConfirmingDelete(false);
     closeBookDetail();
+  };
+
+  const handleMarkDnf = async () => {
+    await bookService.markAsDnf(book.id);
+  };
+
+  const handleResumeBook = async () => {
+    await bookService.resumeReading(book.id);
   };
 
   const handleToggleExcludeSession = async (sessionId, currentVal) => {
@@ -293,9 +306,13 @@ export function BookDetailModal({
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                  {isCompleted ? (
+                  {book.status === 'completed' ? (
                     <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                       Completed
+                    </span>
+                  ) : book.status === 'dnf' ? (
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-500 border border-rose-500/30">
+                      Abandoned (DNF)
                     </span>
                   ) : (
                     <span
@@ -361,22 +378,37 @@ export function BookDetailModal({
                   </div>
                 </div>
 
-                {/* Quick Book Actions: Focus / Share Card */}
+                {/* Quick Book Actions: Focus / DNF / Share Card */}
                 <div className="mt-3 flex items-center gap-2 flex-wrap">
-                  {!isCurrentFocus && (
+                  {book.status === 'dnf' ? (
                     <button
                       type="button"
-                      onClick={handleSetFocus}
+                      onClick={handleResumeBook}
                       className={`py-1 px-3 text-xs rounded-xl font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer ${
                         isDark
-                          ? 'bg-[#201e28] text-stone-200 hover:bg-[#2c2937] border border-white/10'
-                          : 'btn-cozy btn-cozy-secondary'
+                          ? 'bg-emerald-950/40 text-emerald-300 hover:bg-emerald-900/50 border border-emerald-500/30'
+                          : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
                       }`}
+                      title="Resume reading this book"
                     >
-                      <PlayCircle className="w-3.5 h-3.5" style={{ color: primaryColor }} />
-                      <span>Make Active Book</span>
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Resume Reading</span>
                     </button>
-                  )}
+                  ) : book.status !== 'completed' ? (
+                    <button
+                      type="button"
+                      onClick={handleMarkDnf}
+                      className={`py-1 px-3 text-xs rounded-xl font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer ${
+                        isDark
+                          ? 'bg-rose-950/30 text-rose-300 hover:bg-rose-900/40 border border-rose-500/30'
+                          : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                      }`}
+                      title="Mark as Did Not Finish (DNF) in library history"
+                    >
+                      <Ban className="w-3.5 h-3.5" />
+                      <span>Abandon (DNF)</span>
+                    </button>
+                  ) : null}
 
                   <button
                     type="button"
@@ -807,6 +839,58 @@ export function BookDetailModal({
                   }`}
                 >
                   Cozy Light
+                </button>
+              </div>
+            </div>
+
+            {/* Reading Status Selector */}
+            <div>
+              <label className={labelClass}>Reading Status</label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditStatus('reading')}
+                  className={`py-1.5 px-2 text-xs rounded-xl border font-semibold text-center transition-all cursor-pointer ${
+                    editStatus === 'reading'
+                      ? isDark
+                        ? 'bg-blue-950/40 border-blue-500 text-blue-300 font-bold'
+                        : 'bg-blue-50 border-blue-400 text-blue-700 font-bold'
+                      : isDark
+                      ? 'bg-[#201e29] border-white/10 text-stone-400 hover:text-white'
+                      : 'bg-white border-[#eae3d8] text-stone-700 hover:bg-[#ede7dd]'
+                  }`}
+                >
+                  Reading
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditStatus('completed')}
+                  className={`py-1.5 px-2 text-xs rounded-xl border font-semibold text-center transition-all cursor-pointer ${
+                    editStatus === 'completed'
+                      ? isDark
+                        ? 'bg-emerald-950/40 border-emerald-500 text-emerald-300 font-bold'
+                        : 'bg-emerald-50 border-emerald-400 text-emerald-700 font-bold'
+                      : isDark
+                      ? 'bg-[#201e29] border-white/10 text-stone-400 hover:text-white'
+                      : 'bg-white border-[#eae3d8] text-stone-700 hover:bg-[#ede7dd]'
+                  }`}
+                >
+                  Completed
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditStatus('dnf')}
+                  className={`py-1.5 px-2 text-xs rounded-xl border font-semibold text-center transition-all cursor-pointer ${
+                    editStatus === 'dnf'
+                      ? isDark
+                        ? 'bg-rose-950/40 border-rose-500 text-rose-300 font-bold'
+                        : 'bg-rose-50 border-rose-400 text-rose-700 font-bold'
+                      : isDark
+                      ? 'bg-[#201e29] border-white/10 text-stone-400 hover:text-white'
+                      : 'bg-white border-[#eae3d8] text-stone-700 hover:bg-[#ede7dd]'
+                  }`}
+                >
+                  DNF
                 </button>
               </div>
             </div>

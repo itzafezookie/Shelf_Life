@@ -1,9 +1,8 @@
 import React from 'react';
-import { Eye, PlayCircle } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import { useUIStore } from '../../stores/useUIStore';
-import { bookService } from '../../services/bookService';
 
-export function BookCard({ book, isCurrentFocus = false, palette, isDark }) {
+export function BookCard({ book, palette, isDark }) {
   const { openBookDetail } = useUIStore();
 
   const primaryColor = palette?.primary || '#0284c7';
@@ -11,27 +10,33 @@ export function BookCard({ book, isCurrentFocus = false, palette, isDark }) {
   const current = book.current_page || 0;
   const percentage = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
 
-  const handleSetFocus = async (e) => {
-    e.stopPropagation();
-    await bookService.setCurrentFocusBook(book.id);
-  };
-
   const getStatusBadge = () => {
     if (book.status === 'completed') {
       return (
-        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border inline-block ${
           isDark
             ? 'bg-emerald-950/60 text-emerald-300 border-emerald-800/80'
             : 'bg-emerald-50 text-emerald-800 border-emerald-200'
         }`}>
-          Completed
+          Finished
+        </span>
+      );
+    }
+    if (book.status === 'dnf') {
+      return (
+        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border inline-block ${
+          isDark
+            ? 'bg-rose-950/40 text-rose-300 border-rose-800/60'
+            : 'bg-rose-50 text-rose-700 border-rose-200'
+        }`}>
+          DNF
         </span>
       );
     }
     if (book.status === 'reading') {
       return (
         <span
-          className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border"
+          className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border inline-block"
           style={{
             backgroundColor: `${primaryColor}20`,
             color: primaryColor,
@@ -43,7 +48,7 @@ export function BookCard({ book, isCurrentFocus = false, palette, isDark }) {
       );
     }
     return (
-      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border inline-block ${
         isDark
           ? 'bg-[#22202a] text-stone-400 border-white/10'
           : 'bg-[#f3ece1] text-stone-600 border border-[#e2d9cd]'
@@ -53,64 +58,43 @@ export function BookCard({ book, isCurrentFocus = false, palette, isDark }) {
     );
   };
 
+  // Circular progress stroke calculation
+  const radius = 20;
+  const circumference = 2 * Math.PI * radius; // ~125.66
+  const strokeDashoffset = circumference - (circumference * percentage) / 100;
+  const progressColor =
+    book.status === 'completed'
+      ? '#10b981'
+      : book.status === 'dnf'
+      ? '#f43f5e'
+      : primaryColor;
+
   return (
     <div
       onClick={() => openBookDetail(book.id)}
-      className={`p-4 flex flex-col justify-between cursor-pointer relative rounded-2xl border transition-all duration-300 ${
+      className={`p-3.5 sm:p-4 rounded-2xl border transition-all duration-300 cursor-pointer flex items-center justify-between gap-3.5 group ${
         isDark
-          ? 'bg-[#17161c] border-white/10 hover:border-white/20 hover:-translate-y-0.5'
-          : 'cozy-card cozy-card-hover bg-white'
+          ? 'bg-[#17161c] border-white/10 hover:border-white/20 hover:bg-[#1c1a24]'
+          : 'cozy-card cozy-card-hover bg-white hover:bg-stone-50/80'
       }`}
-      style={
-        isCurrentFocus
-          ? {
-              borderColor: `${primaryColor}65`,
-              boxShadow: isDark
-                ? `0 8px 24px -2px ${primaryColor}25, 0 0 16px -2px ${primaryColor}20`
-                : `0 4px 16px -2px ${primaryColor}20`
-            }
-          : undefined
-      }
     >
-      {/* Top Badges */}
-      <div className="flex items-center justify-between gap-2 mb-3">
-        {getStatusBadge()}
-        {isCurrentFocus && (
-          <span
-            className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border shadow-2xs"
-            style={{
-              backgroundColor: `${primaryColor}25`,
-              color: primaryColor,
-              borderColor: `${primaryColor}50`
-            }}
-          >
-            ★ Active Focus
-          </span>
-        )}
-      </div>
-
-      {/* Book Cover with Spine & Info */}
-      <div className="flex gap-3.5 mb-4">
-        <div
-          className="book-cover-frame w-16 h-24 shrink-0 bg-[#ede7dd] transition-all"
-          style={
-            isDark && isCurrentFocus
-              ? { boxShadow: `0 4px 14px -1px ${primaryColor}30` }
-              : undefined
-          }
-        >
+      {/* Left side: Book Cover + Book Info */}
+      <div className="flex items-center gap-3.5 min-w-0 flex-1">
+        {/* Cover Art (5% larger: 70px x 105px) */}
+        <div className="book-cover-frame w-[70px] h-[105px] shrink-0 bg-[#ede7dd] shadow-sm overflow-hidden rounded-lg">
           <img
             src={book.cover_url || './default-cover-small.svg'}
             alt={book.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             onError={(e) => {
               e.target.src = './default-cover-small.svg';
             }}
           />
         </div>
 
-        <div className="flex-1 min-w-0">
-          <h4 className={`text-sm font-bold font-editorial tracking-tight line-clamp-2 leading-snug ${
+        {/* Book Info */}
+        <div className="min-w-0 flex-1">
+          <h4 className={`text-sm sm:text-base font-bold font-editorial tracking-tight line-clamp-1 leading-snug group-hover:text-amber-500 transition-colors ${
             isDark ? 'text-white' : 'text-stone-900'
           }`}>
             {book.title}
@@ -119,8 +103,9 @@ export function BookCard({ book, isCurrentFocus = false, palette, isDark }) {
             {book.author || 'Unknown Author'}
           </p>
 
+          {/* Genre Tags */}
           {book.genres && book.genres.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
+            <div className="flex flex-wrap gap-1 mt-1.5">
               {book.genres.slice(0, 2).map((g) => (
                 <span
                   key={g}
@@ -135,51 +120,55 @@ export function BookCard({ book, isCurrentFocus = false, palette, isDark }) {
               ))}
             </div>
           )}
+
+          {/* Status Tag (Moved Below Genre Tags) */}
+          <div className="mt-2">
+            {getStatusBadge()}
+          </div>
         </div>
       </div>
 
-      {/* Progress & Quick Actions */}
-      <div className={`space-y-1.5 mt-auto pt-2 border-t ${isDark ? 'border-white/10' : 'border-[#ede7dd]'}`}>
-        <div className={`flex items-center justify-between text-xs font-medium ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
-          <span>{current} / {total > 0 ? `${total} p` : '—'}</span>
-          <span
-            className="font-bold font-mono"
-            style={{ color: isCurrentFocus ? primaryColor : undefined }}
-          >
-            {percentage}%
+      {/* Right side: Circular Progress Justified to the Right + Details Icon */}
+      <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
+        <div className="flex flex-col items-center justify-center text-center">
+          <div className="relative w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center">
+            <svg className="w-12 h-12 sm:w-14 sm:h-14 -rotate-90" viewBox="0 0 48 48">
+              <circle
+                cx="24"
+                cy="24"
+                r={radius}
+                className={isDark ? 'stroke-white/10' : 'stroke-stone-200'}
+                strokeWidth="4"
+                fill="none"
+              />
+              <circle
+                cx="24"
+                cy="24"
+                r={radius}
+                stroke={progressColor}
+                strokeWidth="4"
+                strokeDasharray={circumference}
+                strokeDashoffset={strokeDashoffset}
+                strokeLinecap="round"
+                fill="none"
+                className="transition-all duration-500"
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="font-mono font-bold text-[11px] sm:text-xs">
+                {percentage}%
+              </span>
+            </div>
+          </div>
+          <span className={`text-[9px] sm:text-[10px] font-mono mt-0.5 ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+            {current}/{total > 0 ? `${total}p` : '—'}
           </span>
         </div>
 
-        <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-[#26242e]' : 'cozy-progress-bg'}`}>
-          <div
-            className="h-full rounded-full transition-all duration-300"
-            style={{
-              width: `${percentage}%`,
-              backgroundColor: isCurrentFocus ? primaryColor : '#10b981'
-            }}
-          />
-        </div>
-
-        <div className="flex items-center justify-between pt-2">
-          {!isCurrentFocus && book.status !== 'completed' ? (
-            <button
-              onClick={handleSetFocus}
-              className="text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
-              style={{ color: primaryColor }}
-            >
-              <PlayCircle className="w-3.5 h-3.5" />
-              <span>Make Focus</span>
-            </button>
-          ) : (
-            <span />
-          )}
-
-          <span className={`text-xs flex items-center gap-1 transition-colors ${
-            isDark ? 'text-stone-400 hover:text-white' : 'text-stone-400 hover:text-stone-700'
-          }`}>
-            <Eye className="w-3.5 h-3.5" />
-            <span>Details</span>
-          </span>
+        <div className={`p-1.5 rounded-xl border opacity-50 group-hover:opacity-100 transition-opacity ${
+          isDark ? 'border-white/10 text-stone-400' : 'border-stone-200 text-stone-500'
+        }`}>
+          <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </div>
       </div>
     </div>

@@ -52,16 +52,33 @@ export const bookService = {
 
     const updated = { ...existing, ...updates };
 
-    // Auto-update status if pages reached total
-    if (updated.pages_total > 0 && updated.current_page >= updated.pages_total && updated.status !== 'completed') {
+    // Auto-update status if pages reached total (unless explicit status like dnf is passed)
+    if (updates.status === 'dnf') {
+      updated.status = 'dnf';
+      updated.abandoned_date = updates.abandoned_date || new Date().toISOString();
+    } else if (updated.status !== 'dnf' && updated.pages_total > 0 && updated.current_page >= updated.pages_total && updated.status !== 'completed') {
       updated.status = 'completed';
       updated.completed_date = new Date().toISOString();
-    } else if (updated.current_page > 0 && updated.current_page < updated.pages_total && updated.status === 'to-read') {
+    } else if (updated.status !== 'dnf' && updated.current_page > 0 && updated.current_page < updated.pages_total && updated.status === 'to-read') {
       updated.status = 'reading';
     }
 
     await db.books.put(updated);
     return updated;
+  },
+
+  async markAsDnf(id) {
+    return await this.updateBook(id, {
+      status: 'dnf',
+      abandoned_date: new Date().toISOString()
+    });
+  },
+
+  async resumeReading(id) {
+    return await this.updateBook(id, {
+      status: 'reading',
+      abandoned_date: null
+    });
   },
 
   async deleteBook(id) {

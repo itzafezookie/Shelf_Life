@@ -2,7 +2,7 @@
 
 > **AUTO-GENERATED SYSTEM INDEX** — DO NOT EDIT MANUALLY.
 > Regenerate with `npm run index` or automatically via `npm run build`.
-> Last Index Run: 2026-09-26T19:27:51.914Z
+> Last Index Run: 2026-09-26T19:37:59.016Z
 
 ## 🎯 1. System Sources of Truth (Singletons, Engines & Stores)
 
@@ -65,7 +65,7 @@ graph TD
 
 ## 📦 3. Module Catalog & Architectural Role
 
-Total workspace files tracked: **79** | Total LOC: **56415**
+Total workspace files tracked: **79** | Total LOC: **56645**
 
 | File | LOC | Type / Architectural Role | Exports & Public Symbols | Storage / APIs |
 | :--- | :--- | :--- | :--- | :--- |
@@ -107,9 +107,9 @@ Total workspace files tracked: **79** | Total LOC: **56415**
 | [`src/components/layout/Navigation.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/layout/Navigation.jsx) | 101 | Dumb UI Presentation | `Navigation()` | — |
 | [`src/components/layout/ShelfLifeLogo.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/layout/ShelfLifeLogo.jsx) | 136 | Dumb UI Presentation | `ShelfLifeLogo()` | — |
 | [`src/components/library/AddBookModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/AddBookModal.jsx) | 617 | Dumb UI Presentation | `AddBookModal()`, `handleSearch()`, `handleSelectBook()`, `handleStartManual()` | Open Library REST API |
-| [`src/components/library/BookCard.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/BookCard.jsx) | 188 | Dumb UI Presentation | `BookCard()`, `handleSetFocus()`, `getStatusBadge()` | — |
-| [`src/components/library/BookDetailModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/BookDetailModal.jsx) | 917 | Dumb UI Presentation | `BookDetailModal()`, `formatDate()`, `formatSessionTime()`, `handleRatingChange()` | — |
-| [`src/components/library/BookList.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/BookList.jsx) | 209 | Dumb UI Presentation | `BookList()` | — |
+| [`src/components/library/BookCard.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/BookCard.jsx) | 177 | Dumb UI Presentation | `BookCard()`, `getStatusBadge()` | — |
+| [`src/components/library/BookDetailModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/BookDetailModal.jsx) | 1001 | Dumb UI Presentation | `BookDetailModal()`, `formatDate()`, `formatSessionTime()`, `handleRatingChange()` | — |
+| [`src/components/library/BookList.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/BookList.jsx) | 349 | Dumb UI Presentation | `BookList()`, `handleClearAllFilters()` | — |
 | [`src/components/mobile/MobileSheetPanel.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/mobile/MobileSheetPanel.jsx) | 397 | Dumb UI Presentation | `MobileSheetPanel()`, `handleStart()`, `handlePause()`, `handleResume()` | — |
 | [`src/components/modals/BookCompletedCardModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/BookCompletedCardModal.jsx) | 634 | Dumb UI Presentation | `BookCompletedCardModal()`, `loadPalette()`, `generateCanvasImage()`, `roundRect()` | — |
 | [`src/components/modals/CustomColorPicker.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/CustomColorPicker.jsx) | 260 | Dumb UI Presentation | `hexToHsl()`, `hslToHex()`, `f()`, `CustomColorPicker()` | — |
@@ -138,7 +138,7 @@ Total workspace files tracked: **79** | Total LOC: **56415**
 | [`src/scene/ReadingNookArea.js`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/scene/ReadingNookArea.js) | 126 | Static Asset | class `ReadingNookArea` | — |
 | [`src/scene/SceneManager.js`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/scene/SceneManager.js) | 290 | Static Asset | class `SceneManager` | — |
 | [`src/services/analyticsEngine.js`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/services/analyticsEngine.js) | 191 | Core Engine / Service | — | — |
-| [`src/services/bookService.js`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/services/bookService.js) | 265 | Core Engine / Service | `cleanGenres()` | Open Library REST API |
+| [`src/services/bookService.js`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/services/bookService.js) | 282 | Core Engine / Service | `cleanGenres()` | Open Library REST API |
 | [`src/services/colorExtractor.js`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/services/colorExtractor.js) | 302 | Core Engine / Service | `getTextOnColor()`, `extractPaletteFromImage()`, `rgbToHex()`, `adjustColor()` | — |
 | [`src/services/exportImportService.js`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/services/exportImportService.js) | 68 | Core Engine / Service | — | — |
 | [`src/services/migrationService.js`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/services/migrationService.js) | 136 | Core Engine / Service | `runLegacyMigrationIfNeeded()` | localStorage: shelfLife_books, localStorage: shelfLife_sessions, localStorage: shelfLife_genres, localStorage: currentBookId, localStorage: shelfLife_baselineWPM |
@@ -153,7 +153,7 @@ Total workspace files tracked: **79** | Total LOC: **56415**
 
 ### ⚠️ 400-LOC Ceiling Violations
 - [`src/components/library/AddBookModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/AddBookModal.jsx) (617 lines) — *Must be decomposed into smaller sub-components.*
-- [`src/components/library/BookDetailModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/BookDetailModal.jsx) (917 lines) — *Must be decomposed into smaller sub-components.*
+- [`src/components/library/BookDetailModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/BookDetailModal.jsx) (1001 lines) — *Must be decomposed into smaller sub-components.*
 - [`src/components/modals/BookCompletedCardModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/BookCompletedCardModal.jsx) (634 lines) — *Must be decomposed into smaller sub-components.*
 - [`src/components/modals/ReadingSpeedTestModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/ReadingSpeedTestModal.jsx) (602 lines) — *Must be decomposed into smaller sub-components.*
 
