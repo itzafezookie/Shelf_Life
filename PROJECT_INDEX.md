@@ -2,7 +2,7 @@
 
 > **AUTO-GENERATED SYSTEM INDEX** — DO NOT EDIT MANUALLY.
 > Regenerate with `npm run index` or automatically via `npm run build`.
-> Last Index Run: 2026-09-26T15:43:18.131Z
+> Last Index Run: 2026-09-26T16:05:38.184Z
 
 ## 🎯 1. System Sources of Truth (Singletons, Engines & Stores)
 
@@ -65,7 +65,7 @@ graph TD
 
 ## 📦 3. Module Catalog & Architectural Role
 
-Total workspace files tracked: **76** | Total LOC: **13144**
+Total workspace files tracked: **76** | Total LOC: **13130**
 
 | File | LOC | Type / Architectural Role | Exports & Public Symbols | Storage / APIs |
 | :--- | :--- | :--- | :--- | :--- |
@@ -100,7 +100,7 @@ Total workspace files tracked: **76** | Total LOC: **13144**
 | [`src/components/diorama/LeftDockPanel.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/diorama/LeftDockPanel.jsx) | 358 | Dumb UI Presentation | `LeftDockPanel()`, `handleIncrementPage()`, `handleSavePage()` | — |
 | [`src/components/editorial/DetailSlidePanel.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/editorial/DetailSlidePanel.jsx) | 255 | Dumb UI Presentation | `DetailSlidePanel()`, `handleSave()`, `handleSetFocus()`, `handleDelete()` | — |
 | [`src/components/editorial/EditorialHUD.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/editorial/EditorialHUD.jsx) | 78 | Dumb UI Presentation | `EditorialHUD()`, `handlePrev()`, `handleNext()`, `handleInspect()` | — |
-| [`src/components/layout/Header.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/layout/Header.jsx) | 130 | Dumb UI Presentation | `Header()` | — |
+| [`src/components/layout/Header.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/layout/Header.jsx) | 116 | Dumb UI Presentation | `Header()` | — |
 | [`src/components/layout/LookAheadHeader.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/layout/LookAheadHeader.jsx) | 86 | Dumb UI Presentation | `LookAheadHeader()` | — |
 | [`src/components/layout/Navigation.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/layout/Navigation.jsx) | 101 | Dumb UI Presentation | `Navigation()` | — |
 | [`src/components/layout/ShelfLifeLogo.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/layout/ShelfLifeLogo.jsx) | 136 | Dumb UI Presentation | `ShelfLifeLogo()` | — |
