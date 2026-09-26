@@ -88,10 +88,11 @@ export function PageScannerModal({ palette, isDark }) {
         img.onerror = reject;
       });
 
-      // Scale to optimal OCR resolution (book page x-height sweet spot: ~2400px height)
-      const targetScale = Math.min(3, Math.max(1, 2400 / img.height));
-      const optWidth = Math.round(img.width * targetScale);
-      const optHeight = Math.round(img.height * targetScale);
+      // Scale to optimal OCR dimensions (~1500px max)
+      const maxDim = 1500;
+      const scale = Math.min(1.5, maxDim / Math.max(img.width, img.height));
+      const optWidth = Math.round(img.width * scale);
+      const optHeight = Math.round(img.height * scale);
 
       const canvas = document.createElement('canvas');
       canvas.width = optWidth;
@@ -102,22 +103,27 @@ export function PageScannerModal({ palette, isDark }) {
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(img, 0, 0, optWidth, optHeight);
 
-      // Contrast enhancement pass to sharpen print ink against paper
+      // Adaptive Luminance Contrast Stretch (Handles paper shadows & off-white paper stock)
       try {
         const imgData = ctx.getImageData(0, 0, optWidth, optHeight);
         const d = imgData.data;
+
+        let minL = 255;
+        let maxL = 0;
         for (let i = 0; i < d.length; i += 4) {
           const luma = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-          // S-curve contrast boost
-          let val;
-          if (luma < 128) {
-            val = (luma * luma) / 128; // deepen ink
-          } else {
-            val = 255 - ((255 - luma) * (255 - luma)) / 128; // brighten paper
-          }
-          d[i] = val;
-          d[i + 1] = val;
-          d[i + 2] = val;
+          if (luma < minL) minL = luma;
+          if (luma > maxL) maxL = luma;
+        }
+
+        const range = Math.max(35, maxL - minL);
+
+        for (let i = 0; i < d.length; i += 4) {
+          const luma = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+          const stretched = Math.min(255, Math.max(0, ((luma - minL) / range) * 255));
+          d[i] = stretched;
+          d[i + 1] = stretched;
+          d[i + 2] = stretched;
         }
         ctx.putImageData(imgData, 0, 0);
       } catch (procErr) {
@@ -136,6 +142,11 @@ export function PageScannerModal({ palette, isDark }) {
             }
           }
         }
+      });
+
+      // PSM 6: Uniform block of text
+      await worker.setParameters({
+        tessedit_pageseg_mode: 6
       });
 
       setOcrStatus('Scanning typography & counting words...');

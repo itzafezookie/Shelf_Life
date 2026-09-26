@@ -12,7 +12,10 @@ import {
   Bookmark,
   ChevronRight,
   Sliders,
-  Layers
+  Layers,
+  Crop,
+  Clipboard,
+  Lightbulb
 } from 'lucide-react';
 import { useUIStore } from '../../stores/useUIStore';
 import { bookService } from '../../services/bookService';
@@ -25,9 +28,11 @@ export function QuoteScannerModal({ palette, isDark }) {
   // Mode: 'snap' (OCR camera/upload flow) | 'manual' (direct paste/type)
   const [activeTab, setActiveTab] = useState('snap');
 
-  // Step: 'capture' | 'processing' | 'select'
+  // Step: 'capture' | 'crop' | 'processing' | 'select'
   const [step, setStep] = useState('capture');
-  const [imagePreview, setImagePreview] = useState(null);
+  const [rawImageDataUrl, setRawImageDataUrl] = useState(null);
+  const [cropMargins, setCropMargins] = useState({ top: 12, bottom: 12, left: 10, right: 10 });
+
   const [ocrStatus, setOcrStatus] = useState('');
   const [ocrProgress, setOcrProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState(null);
@@ -42,6 +47,7 @@ export function QuoteScannerModal({ palette, isDark }) {
   const [quotePage, setQuotePage] = useState('');
   const [quoteNote, setQuoteNote] = useState('');
   const [isFavorite, setIsFavorite] = useState(false);
+  const [clipboardFeedback, setClipboardFeedback] = useState(false);
 
   const fileInputRef = useRef(null);
 
@@ -54,7 +60,8 @@ export function QuoteScannerModal({ palette, isDark }) {
     if (isQuoteScannerOpen) {
       setActiveTab('snap');
       setStep('capture');
-      setImagePreview(null);
+      setRawImageDataUrl(null);
+      setCropMargins({ top: 12, bottom: 12, left: 10, right: 10 });
       setOcrStatus('');
       setOcrProgress(0);
       setErrorMessage(null);
@@ -65,6 +72,7 @@ export function QuoteScannerModal({ palette, isDark }) {
       setQuotePage(quoteScannerBook?.current_page ? String(quoteScannerBook.current_page) : '');
       setQuoteNote('');
       setIsFavorite(false);
+      setClipboardFeedback(false);
     }
   }, [isQuoteScannerOpen, quoteScannerBook]);
 
@@ -76,21 +84,24 @@ export function QuoteScannerModal({ palette, isDark }) {
     const reader = new FileReader();
     reader.onload = (event) => {
       const dataUrl = event.target.result;
-      processImage(dataUrl);
+      setRawImageDataUrl(dataUrl);
+      setCropMargins({ top: 12, bottom: 12, left: 10, right: 10 });
+      setStep('crop');
     };
     reader.readAsDataURL(file);
     e.target.value = '';
   };
 
-  // Preprocess image & run OCR
-  const processImage = async (dataUrl) => {
-    setImagePreview(dataUrl);
+  // Run high-precision OCR on the cropped & preprocessed region
+  const executeOcrOnPassage = async () => {
+    if (!rawImageDataUrl) return;
+
     setStep('processing');
-    setOcrProgress(12);
-    setOcrStatus('Enhancing image clarity for OCR...');
+    setOcrProgress(15);
+    setOcrStatus('Framing passage & optimizing contrast...');
     setErrorMessage(null);
 
-    let currentP = 12;
+    let currentP = 15;
     const smoothTimer = setInterval(() => {
       currentP = currentP + (88 - currentP) * 0.08 + 0.4;
       setOcrProgress((prev) => Math.max(prev, Math.min(88, Math.round(currentP))));
@@ -98,16 +109,23 @@ export function QuoteScannerModal({ palette, isDark }) {
 
     try {
       const img = new Image();
-      img.src = dataUrl;
+      img.src = rawImageDataUrl;
       await new Promise((resolve, reject) => {
         img.onload = resolve;
         img.onerror = reject;
       });
 
-      // Target ~2400px height for optimal OCR character height
-      const targetScale = Math.min(3, Math.max(1, 2400 / img.height));
-      const optWidth = Math.round(img.width * targetScale);
-      const optHeight = Math.round(img.height * targetScale);
+      // Calculate cropped source coordinates
+      const sx = Math.round((cropMargins.left / 100) * img.width);
+      const sy = Math.round((cropMargins.top / 100) * img.height);
+      const sw = Math.max(50, Math.round(((100 - cropMargins.left - cropMargins.right) / 100) * img.width));
+      const sh = Math.max(50, Math.round(((100 - cropMargins.top - cropMargins.bottom) / 100) * img.height));
+
+      // Scale to optimal OCR dimensions (~1500px max)
+      const maxDim = 1500;
+      const scale = Math.min(1.5, maxDim / Math.max(sw, sh));
+      const optWidth = Math.round(sw * scale);
+      const optHeight = Math.round(sh * scale);
 
       const canvas = document.createElement('canvas');
       canvas.width = optWidth;
@@ -116,31 +134,39 @@ export function QuoteScannerModal({ palette, isDark }) {
       const ctx = canvas.getContext('2d');
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(img, 0, 0, optWidth, optHeight);
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, optWidth, optHeight);
 
-      // Contrast enhancement pass
+      // Adaptive Luminance Contrast Stretch (Handles paper shadows & off-white paper stock)
       try {
         const imgData = ctx.getImageData(0, 0, optWidth, optHeight);
         const d = imgData.data;
+
+        let minL = 255;
+        let maxL = 0;
         for (let i = 0; i < d.length; i += 4) {
           const luma = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-          let val;
-          if (luma < 128) {
-            val = (luma * luma) / 128;
-          } else {
-            val = 255 - ((255 - luma) * (255 - luma)) / 128;
-          }
-          d[i] = val;
-          d[i + 1] = val;
-          d[i + 2] = val;
+          if (luma < minL) minL = luma;
+          if (luma > maxL) maxL = luma;
+        }
+
+        const range = Math.max(35, maxL - minL);
+
+        for (let i = 0; i < d.length; i += 4) {
+          const luma = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+          // Smooth normalized stretch preserves anti-aliased character edges for the neural net
+          const stretched = Math.min(255, Math.max(0, ((luma - minL) / range) * 255));
+          d[i] = stretched;
+          d[i + 1] = stretched;
+          d[i + 2] = stretched;
         }
         ctx.putImageData(imgData, 0, 0);
       } catch (procErr) {
-        console.warn('[QuoteScanner] Image preprocessing fallback:', procErr);
+        console.warn('[QuoteScanner] Contrast stretch fallback:', procErr);
       }
 
-      setOcrStatus('Scanning typography & detecting words...');
+      setOcrStatus('Scanning typography neural network (PSM 6)...');
 
+      // Tesseract Worker with PSM 6 (Single uniform block of text)
       const worker = await createWorker('eng', 1, {
         logger: (m) => {
           if (m.status === 'recognizing text') {
@@ -151,6 +177,11 @@ export function QuoteScannerModal({ palette, isDark }) {
             }
           }
         }
+      });
+
+      // PSM 6 is significantly more accurate for book passages than generic multi-column PSM 3
+      await worker.setParameters({
+        tessedit_pageseg_mode: 6
       });
 
       const ret = await worker.recognize(canvas);
@@ -167,9 +198,9 @@ export function QuoteScannerModal({ palette, isDark }) {
         .map((w) => w.trim())
         .filter((w) => w.length > 0);
 
-      if (tokens.length < 3) {
+      if (tokens.length < 2) {
         throw new Error(
-          'Could not clearly recognize words from this photo. Please ensure clear lighting and legible text.'
+          'Could not clearly recognize text in this crop. Please adjust the crop frame to focus on the text, or try another photo with even lighting.'
         );
       }
 
@@ -178,7 +209,6 @@ export function QuoteScannerModal({ palette, isDark }) {
       setEndIndex(tokens.length - 1);
       setQuoteText(tokens.join(' '));
 
-      // Finish progress animation
       setOcrProgress(100);
       setTimeout(() => {
         setStep('select');
@@ -187,9 +217,9 @@ export function QuoteScannerModal({ palette, isDark }) {
       clearInterval(smoothTimer);
       console.error('[QuoteScanner] OCR failure:', err);
       setErrorMessage(
-        'Could not digitize text from this image. Please try another angle, or switch to typing the quote manually.'
+        'Could not clearly recognize text from this crop. Try adjusting the crop frame to just the text lines, or paste the quote directly.'
       );
-      setStep('capture');
+      setStep('crop');
     }
   };
 
@@ -200,14 +230,12 @@ export function QuoteScannerModal({ palette, isDark }) {
       setEndIndex(index);
       setQuoteText(detectedWords[index]);
     } else if (startIndex !== null && endIndex === startIndex) {
-      // Second word selection to form range
       const newStart = Math.min(startIndex, index);
       const newEnd = Math.max(startIndex, index);
       setStartIndex(newStart);
       setEndIndex(newEnd);
       setQuoteText(detectedWords.slice(newStart, newEnd + 1).join(' '));
     } else {
-      // Already had a range, restart selection from this word
       setStartIndex(index);
       setEndIndex(index);
       setQuoteText(detectedWords[index]);
@@ -221,10 +249,18 @@ export function QuoteScannerModal({ palette, isDark }) {
     setQuoteText(detectedWords.join(' '));
   };
 
-  const handleClearSelection = () => {
-    setStartIndex(null);
-    setEndIndex(null);
-    setQuoteText('');
+  // Paste from clipboard helper
+  const handlePasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text && text.trim()) {
+        setQuoteText(text.trim());
+        setClipboardFeedback(true);
+        setTimeout(() => setClipboardFeedback(false), 2000);
+      }
+    } catch (err) {
+      console.warn('Clipboard read permission denied:', err);
+    }
   };
 
   // Save quote to book
@@ -343,7 +379,7 @@ export function QuoteScannerModal({ palette, isDark }) {
               {step === 'capture' && (
                 <div className="space-y-4">
                   <p className={`text-xs leading-relaxed ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>
-                    Snap a photo of the passage in your book. Shelf_Life will digitize the text on-device so you can tap the start and end of your favorite quote to highlight and save it.
+                    Snap a photo of the passage in your book. To get the best recognition on physical books, keep the page flat and avoid shadows from your phone.
                   </p>
 
                   <input
@@ -375,20 +411,230 @@ export function QuoteScannerModal({ palette, isDark }) {
                         Snap or Upload Passage Photo
                       </span>
                       <span className={`text-xs mt-1 block ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
-                        Uses native high-resolution camera autofocus for crisp OCR digitizing
+                        Uses native high-resolution camera autofocus
                       </span>
                     </div>
+                  </button>
+
+                  {/* Physical book tip */}
+                  <div className={`p-3 rounded-xl border flex items-start gap-2 text-[11px] ${
+                    isDark ? 'bg-white/3 border-white/5 text-stone-400' : 'bg-stone-50 border-stone-200 text-stone-600'
+                  }`}>
+                    <Lightbulb className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Physical Book Tip:</strong> You will be able to frame the exact paragraph on the next screen. Cropping out opposite pages, bedsheets, and book gutters dramatically boosts accuracy!
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 2: INTERACTIVE PASSAGE CROP & FRAMING */}
+              {step === 'crop' && rawImageDataUrl && (
+                <div className="space-y-4 animate-fade-in">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-bold font-editorial">Frame the Passage</h4>
+                      <p className={`text-[11px] ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+                        Crop out curved margins, opposite pages, or fingers for clean OCR
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`text-xs font-semibold px-2 py-1 rounded-lg border transition-colors cursor-pointer ${
+                        isDark ? 'bg-white/5 border-white/10 hover:bg-white/10 text-stone-300' : 'bg-white border-stone-200 text-stone-700'
+                      }`}
+                    >
+                      Retake Photo
+                    </button>
+                  </div>
+
+                  {/* Visual Image with Crop Frame Overlay */}
+                  <div className="relative rounded-2xl overflow-hidden border border-white/20 shadow-md bg-black max-h-72 flex items-center justify-center">
+                    <img
+                      src={rawImageDataUrl}
+                      alt="Captured passage"
+                      className="w-full h-auto max-h-72 object-contain"
+                    />
+
+                    {/* Darkened mask around the crop area */}
+                    <div
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        boxShadow: `inset 0 0 0 9999px rgba(0, 0, 0, 0.45)`,
+                        clipPath: `polygon(
+                          0% 0%, 0% 100%, 
+                          ${cropMargins.left}% 100%, 
+                          ${cropMargins.left}% ${cropMargins.top}%, 
+                          ${100 - cropMargins.right}% ${cropMargins.top}%, 
+                          ${100 - cropMargins.right}% ${100 - cropMargins.bottom}%, 
+                          ${cropMargins.left}% ${100 - cropMargins.bottom}%, 
+                          ${cropMargins.left}% 100%, 
+                          100% 100%, 100% 0%
+                        )`
+                      }}
+                    />
+
+                    {/* Highlighted bounding box */}
+                    <div
+                      className="absolute border-2 border-amber-400 rounded-lg pointer-events-none shadow-sm"
+                      style={{
+                        top: `${cropMargins.top}%`,
+                        bottom: `${cropMargins.bottom}%`,
+                        left: `${cropMargins.left}%`,
+                        right: `${cropMargins.right}%`
+                      }}
+                    >
+                      <div className="absolute -top-2.5 left-2 bg-amber-400 text-black text-[9px] font-bold px-1.5 rounded uppercase tracking-wider">
+                        Scan Area
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Framing Presets */}
+                  <div className="space-y-2">
+                    <span className={`block text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+                      Quick Framing Presets
+                    </span>
+                    <div className="grid grid-cols-4 gap-1.5 text-[11px] font-semibold">
+                      <button
+                        type="button"
+                        onClick={() => setCropMargins({ top: 25, bottom: 25, left: 12, right: 12 })}
+                        className={`p-1.5 rounded-xl border text-center transition-colors cursor-pointer ${
+                          isDark ? 'bg-white/5 border-white/10 hover:bg-white/15' : 'bg-stone-50 border-stone-200 hover:bg-stone-100'
+                        }`}
+                      >
+                        Tight Quote
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCropMargins({ top: 10, bottom: 10, left: 10, right: 10 })}
+                        className={`p-1.5 rounded-xl border text-center transition-colors cursor-pointer ${
+                          isDark ? 'bg-white/5 border-white/10 hover:bg-white/15' : 'bg-stone-50 border-stone-200 hover:bg-stone-100'
+                        }`}
+                      >
+                        Main Page
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCropMargins({ top: 5, bottom: 45, left: 8, right: 8 })}
+                        className={`p-1.5 rounded-xl border text-center transition-colors cursor-pointer ${
+                          isDark ? 'bg-white/5 border-white/10 hover:bg-white/15' : 'bg-stone-50 border-stone-200 hover:bg-stone-100'
+                        }`}
+                      >
+                        Top Half
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCropMargins({ top: 45, bottom: 5, left: 8, right: 8 })}
+                        className={`p-1.5 rounded-xl border text-center transition-colors cursor-pointer ${
+                          isDark ? 'bg-white/5 border-white/10 hover:bg-white/15' : 'bg-stone-50 border-stone-200 hover:bg-stone-100'
+                        }`}
+                      >
+                        Bottom Half
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Fine Tuning Sliders */}
+                  <div className={`p-3 rounded-xl border space-y-2.5 text-xs ${
+                    isDark ? 'bg-[#1b1924] border-white/10' : 'bg-[#faf8f4] border-[#eae3d8]'
+                  }`}>
+                    <div className="flex items-center justify-between text-[11px] font-semibold">
+                      <span className="flex items-center gap-1.5">
+                        <Crop className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+                        <span>Fine-Tune Margins</span>
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 text-[11px]">
+                      <div>
+                        <div className="flex justify-between mb-0.5">
+                          <span className={isDark ? 'text-stone-400' : 'text-stone-600'}>Top Cut</span>
+                          <span className="font-mono">{cropMargins.top}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="60"
+                          value={cropMargins.top}
+                          onChange={(e) => setCropMargins((prev) => ({ ...prev, top: parseInt(e.target.value, 10) }))}
+                          className="w-full accent-amber-500 cursor-pointer"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between mb-0.5">
+                          <span className={isDark ? 'text-stone-400' : 'text-stone-600'}>Bottom Cut</span>
+                          <span className="font-mono">{cropMargins.bottom}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="60"
+                          value={cropMargins.bottom}
+                          onChange={(e) => setCropMargins((prev) => ({ ...prev, bottom: parseInt(e.target.value, 10) }))}
+                          className="w-full accent-amber-500 cursor-pointer"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between mb-0.5">
+                          <span className={isDark ? 'text-stone-400' : 'text-stone-600'}>Left (Gutter)</span>
+                          <span className="font-mono">{cropMargins.left}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="40"
+                          value={cropMargins.left}
+                          onChange={(e) => setCropMargins((prev) => ({ ...prev, left: parseInt(e.target.value, 10) }))}
+                          className="w-full accent-amber-500 cursor-pointer"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between mb-0.5">
+                          <span className={isDark ? 'text-stone-400' : 'text-stone-600'}>Right Cut</span>
+                          <span className="font-mono">{cropMargins.right}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="40"
+                          value={cropMargins.right}
+                          onChange={(e) => setCropMargins((prev) => ({ ...prev, right: parseInt(e.target.value, 10) }))}
+                          className="w-full accent-amber-500 cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Scan Passage Button */}
+                  <button
+                    type="button"
+                    onClick={executeOcrOnPassage}
+                    className="w-full py-3 px-4 rounded-xl text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    style={{
+                      backgroundColor: primaryColor,
+                      color: textOnPrimary,
+                      boxShadow: isDark ? `0 4px 16px ${primaryColor}40` : undefined
+                    }}
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>Scan Framed Passage</span>
                   </button>
                 </div>
               )}
 
-              {/* STEP 2: PROCESSING OCR */}
+              {/* STEP 3: PROCESSING OCR */}
               {step === 'processing' && (
                 <div className="py-6 flex flex-col items-center justify-center space-y-4 text-center">
                   <div className="relative w-44 h-56 rounded-xl overflow-hidden border border-white/20 shadow-xl bg-black">
-                    {imagePreview && (
+                    {rawImageDataUrl && (
                       <img
-                        src={imagePreview}
+                        src={rawImageDataUrl}
                         alt="Passage preview"
                         className="w-full h-full object-cover opacity-75 filter grayscale"
                       />
@@ -424,7 +670,7 @@ export function QuoteScannerModal({ palette, isDark }) {
                 </div>
               )}
 
-              {/* STEP 3: WORD TOKEN HIGHLIGHTER & EDIT */}
+              {/* STEP 4: WORD TOKEN HIGHLIGHTER & EDIT */}
               {step === 'select' && (
                 <div className="space-y-4 animate-fade-in">
                   {/* Instructions & Actions */}
@@ -458,6 +704,16 @@ export function QuoteScannerModal({ palette, isDark }) {
                       </button>
                       <button
                         type="button"
+                        onClick={() => setStep('crop')}
+                        className={`p-1 rounded-lg transition-colors cursor-pointer ${
+                          isDark ? 'text-stone-400 hover:text-white' : 'text-stone-400 hover:text-stone-700'
+                        }`}
+                        title="Re-crop passage frame"
+                      >
+                        <Crop className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setStep('capture')}
                         className={`p-1 rounded-lg transition-colors cursor-pointer ${
                           isDark ? 'text-stone-400 hover:text-white' : 'text-stone-400 hover:text-stone-700'
@@ -482,8 +738,6 @@ export function QuoteScannerModal({ palette, isDark }) {
                           endIndex !== null &&
                           idx >= Math.min(startIndex, endIndex) &&
                           idx <= Math.max(startIndex, endIndex);
-                        const isStart = idx === startIndex;
-                        const isEnd = idx === endIndex && startIndex !== endIndex;
 
                         return (
                           <button
@@ -509,6 +763,42 @@ export function QuoteScannerModal({ palette, isDark }) {
                 </div>
               )}
             </>
+          )}
+
+          {/* ========================================================= */}
+          {/* TAB 2: MANUAL ENTRY WITH CLIPBOARD BUTTON                 */}
+          {/* ========================================================= */}
+          {activeTab === 'manual' && (
+            <div className="space-y-3 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <span className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>
+                  Type, paste, or grab from your phone's clipboard:
+                </span>
+
+                <button
+                  type="button"
+                  onClick={handlePasteFromClipboard}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer ${
+                    isDark
+                      ? 'bg-white/5 hover:bg-white/10 text-stone-200 border-white/10'
+                      : 'bg-white hover:bg-stone-50 text-stone-800 border-stone-200 shadow-2xs'
+                  }`}
+                >
+                  <Clipboard className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+                  <span>{clipboardFeedback ? 'Pasted!' : 'Paste Clipboard'}</span>
+                </button>
+              </div>
+
+              {/* Native Google Lens / ML Tip */}
+              <div className={`p-3 rounded-xl border flex items-start gap-2 text-[11px] ${
+                isDark ? 'bg-amber-950/20 border-amber-800/40 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-900'
+              }`}>
+                <Lightbulb className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Native Phone ML Tip:</strong> On modern Android (Google Lens / Camera) and iOS (Live Text), you can hold your finger on physical book text directly in your camera to copy it instantly, then tap <strong>Paste Clipboard</strong> above!
+                </span>
+              </div>
+            </div>
           )}
 
           {/* ========================================================= */}
