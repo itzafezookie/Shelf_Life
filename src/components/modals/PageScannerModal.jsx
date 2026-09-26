@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Camera, Upload, Sparkles, Check, RefreshCw, Sliders, BookOpen, AlertCircle, Eye, Plus, Layers, Trash2 } from 'lucide-react';
+import { X, Camera, Sparkles, Check, RefreshCw, Sliders, BookOpen, AlertCircle, Plus, Layers, Trash2 } from 'lucide-react';
 import { useUIStore } from '../../stores/useUIStore';
 import { bookService } from '../../services/bookService';
 import confetti from 'canvas-confetti';
@@ -21,13 +21,8 @@ export function PageScannerModal({ palette, isDark }) {
   const [detectedWords, setDetectedWords] = useState(250);
   const [detectedLines, setDetectedLines] = useState(0);
   const [wordsPerLine, setWordsPerLine] = useState(0);
-  const [isLiveCameraActive, setIsLiveCameraActive] = useState(false);
-  const [isCameraLoading, setIsCameraLoading] = useState(false);
-  const [cameraFacing, setCameraFacing] = useState('environment'); // 'environment' | 'user'
 
   const fileInputRef = useRef(null);
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
 
   const primaryColor = palette?.primary || '#0284c7';
   const secondaryColor = palette?.secondary || '#ec4899';
@@ -53,234 +48,8 @@ export function PageScannerModal({ palette, isDark }) {
       setDetectedWords(pageScannerBook?.words_per_page || 250);
       setDetectedLines(0);
       setWordsPerLine(0);
-      setIsLiveCameraActive(false);
-      setIsCameraLoading(false);
-    } else {
-      stopLiveCamera();
     }
   }, [isPageScannerOpen, pageScannerBook]);
-
-  // Clean up camera on unmount
-  useEffect(() => {
-    return () => {
-      stopLiveCamera();
-    };
-  }, []);
-
-  const stopLiveCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-    setIsLiveCameraActive(false);
-    setIsCameraLoading(false);
-  };
-
-  const startLiveCamera = () => {
-    setErrorMessage(null);
-    setIsLiveCameraActive(true);
-  };
-
-  // Robust camera stream management once viewfinder mounts
-  useEffect(() => {
-    if (!isLiveCameraActive) {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
-      return;
-    }
-
-    let isSubscribed = true;
-
-    async function initCameraStream() {
-      setIsCameraLoading(true);
-      setErrorMessage(null);
-
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
-
-      let stream = null;
-
-      // Try progressive camera constraints for mobile compatibility
-      const attempts = [
-        {
-          video: {
-            facingMode: { ideal: cameraFacing },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
-          },
-          audio: false
-        },
-        {
-          video: {
-            facingMode: cameraFacing
-          },
-          audio: false
-        },
-        {
-          video: {
-            facingMode: { ideal: cameraFacing }
-          },
-          audio: false
-        },
-        {
-          video: true,
-          audio: false
-        }
-      ];
-
-      for (const constraints of attempts) {
-        try {
-          stream = await navigator.mediaDevices.getUserMedia(constraints);
-          if (stream) break;
-        } catch {
-          // Try next constraint
-        }
-      }
-
-      if (!isSubscribed) {
-        if (stream) stream.getTracks().forEach((t) => t.stop());
-        return;
-      }
-
-      if (!stream) {
-        setErrorMessage(
-          'Could not access camera viewfinder. Please ensure camera permissions are allowed, or use "Snap / Upload Photo".'
-        );
-        setIsCameraLoading(false);
-        setIsLiveCameraActive(false);
-        return;
-      }
-
-      streamRef.current = stream;
-
-      if (videoRef.current) {
-        const video = videoRef.current;
-        video.srcObject = stream;
-        video.muted = true;
-        video.playsInline = true;
-        video.setAttribute('playsinline', 'true');
-        video.setAttribute('webkit-playsinline', 'true');
-
-        video.onloadedmetadata = async () => {
-          if (!isSubscribed) return;
-          try {
-            await video.play();
-            setIsCameraLoading(false);
-          } catch (playErr) {
-            console.warn('[PageScanner] Auto-play was prevented:', playErr);
-            setIsCameraLoading(false);
-          }
-        };
-
-        // Safety fallback if onloadedmetadata is delayed
-        setTimeout(() => {
-          if (isSubscribed) {
-            setIsCameraLoading(false);
-            video.play().catch(() => {});
-          }
-        }, 1200);
-      } else {
-        setIsCameraLoading(false);
-      }
-    }
-
-    initCameraStream();
-
-    return () => {
-      isSubscribed = false;
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
-    };
-  }, [isLiveCameraActive, cameraFacing]);
-
-  const captureFromVideo = async () => {
-    if (!videoRef.current) return;
-    const video = videoRef.current;
-
-    // Verify video stream actually has rendered frames
-    if (!video.videoWidth || !video.videoHeight || video.readyState < 2) {
-      setErrorMessage('Camera preview is still warming up. Please wait a moment and tap again.');
-      return;
-    }
-
-    try {
-      let captureCanvas = null;
-      const track = streamRef.current?.getVideoTracks()?.[0];
-
-      // 1. Try ImageCapture API for full-sensor camera photo with autofocus
-      if (window.ImageCapture && track) {
-        try {
-          const imageCapture = new window.ImageCapture(track);
-          const blob = await imageCapture.takePhoto();
-          const imgBitmap = await createImageBitmap(blob);
-          const fullCanvas = document.createElement('canvas');
-          fullCanvas.width = imgBitmap.width;
-          fullCanvas.height = imgBitmap.height;
-          const fCtx = fullCanvas.getContext('2d');
-          fCtx.drawImage(imgBitmap, 0, 0);
-          captureCanvas = fullCanvas;
-        } catch (e) {
-          console.warn('[PageScanner] ImageCapture takePhoto fallback:', e);
-        }
-      }
-
-      // 2. Fallback to video frame
-      if (!captureCanvas) {
-        const fullCanvas = document.createElement('canvas');
-        fullCanvas.width = video.videoWidth;
-        fullCanvas.height = video.videoHeight;
-        const fCtx = fullCanvas.getContext('2d');
-        fCtx.drawImage(video, 0, 0);
-        captureCanvas = fullCanvas;
-      }
-
-      // 3. Coordinate mapping: crop to what was actually inside the dashed guide on screen
-      const container = video.parentElement;
-      const cWidth = container?.clientWidth || 300;
-      const cHeight = container?.clientHeight || 400;
-      const guidePadding = 24; // matches inset-6 (1.5rem = 24px)
-
-      const guideLeft = guidePadding;
-      const guideTop = guidePadding;
-      const guideW = Math.max(50, cWidth - guidePadding * 2);
-      const guideH = Math.max(50, cHeight - guidePadding * 2);
-
-      const imgWidth = captureCanvas.width;
-      const imgHeight = captureCanvas.height;
-
-      // Handle object-cover scaling ratio
-      const scale = Math.max(cWidth / imgWidth, cHeight / imgHeight);
-      const renderedW = imgWidth * scale;
-      const renderedH = imgHeight * scale;
-      const offsetX = (renderedW - cWidth) / 2;
-      const offsetY = (renderedH - cHeight) / 2;
-
-      const cropX = Math.max(0, Math.round((guideLeft + offsetX) / scale));
-      const cropY = Math.max(0, Math.round((guideTop + offsetY) / scale));
-      const cropW = Math.min(imgWidth - cropX, Math.round(guideW / scale));
-      const cropH = Math.min(imgHeight - cropY, Math.round(guideH / scale));
-
-      const croppedCanvas = document.createElement('canvas');
-      croppedCanvas.width = cropW;
-      croppedCanvas.height = cropH;
-      const cCtx = croppedCanvas.getContext('2d');
-      cCtx.drawImage(captureCanvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-
-      const dataUrl = croppedCanvas.toDataURL('image/jpeg', 0.95);
-      stopLiveCamera();
-      processImage(dataUrl);
-    } catch (err) {
-      console.error('[PageScanner] Capture error:', err);
-      stopLiveCamera();
-      setErrorMessage('Could not capture viewfinder frame. Please try "Snap / Upload Photo".');
-    }
-  };
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -594,116 +363,31 @@ export function PageScannerModal({ palette, isDark }) {
                 className="hidden"
               />
 
-              {/* Live Camera Viewfinder (if active) */}
-              {isLiveCameraActive ? (
-                <div className="relative rounded-2xl overflow-hidden border border-white/20 bg-black aspect-3/4 flex flex-col items-center justify-center">
-                  <video
-                    ref={videoRef}
-                    playsInline
-                    autoPlay
-                    muted
-                    webkit-playsinline="true"
-                    className="w-full h-full object-cover"
-                  />
-
-                  {/* Loading overlay if stream is starting */}
-                  {isCameraLoading && (
-                    <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center gap-2 z-10">
-                      <RefreshCw className="w-6 h-6 text-amber-400 animate-spin" />
-                      <span className="text-xs text-stone-300 font-medium">Opening camera...</span>
-                    </div>
-                  )}
-
-                  {/* Target frame guide */}
-                  <div className="absolute inset-6 border-2 border-dashed border-amber-400/80 rounded-xl pointer-events-none flex items-center justify-center">
-                    <span className="bg-black/60 text-amber-300 text-[11px] font-mono px-2 py-0.5 rounded-full">
-                      Align full page here
-                    </span>
-                  </div>
-
-                  {/* Flip Camera button in top-right */}
-                  <button
-                    type="button"
-                    onClick={() => setCameraFacing((prev) => (prev === 'environment' ? 'user' : 'environment'))}
-                    className="absolute top-3 right-3 p-2 rounded-xl bg-black/60 text-white hover:bg-black/80 backdrop-blur-xs cursor-pointer z-10"
-                    title="Switch camera"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                  </button>
-
-                  {/* Camera control buttons overlay */}
-                  <div className="absolute bottom-4 inset-x-4 flex items-center justify-between z-10">
-                    <button
-                      type="button"
-                      onClick={stopLiveCamera}
-                      className="px-3 py-1.5 text-xs rounded-xl bg-black/60 text-white hover:bg-black/80 backdrop-blur-xs cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={captureFromVideo}
-                      disabled={isCameraLoading}
-                      className="px-5 py-2 text-xs font-bold rounded-xl shadow-lg flex items-center gap-1.5 cursor-pointer text-white disabled:opacity-50"
-                      style={{ backgroundColor: primaryColor }}
-                    >
-                      <Camera className="w-4 h-4" />
-                      <span>Take Photo</span>
-                    </button>
-                  </div>
+              {/* Primary Capture Button (Uses native camera / gallery for maximum sharpness) */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className={`w-full p-6 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-3 text-center transition-all cursor-pointer group ${
+                  isDark
+                    ? 'border-white/15 hover:border-amber-400/60 bg-[#1c1a24] hover:bg-[#22202c]'
+                    : 'border-[#eae3d8] hover:border-[#0284c7] bg-[#fbf9f6] hover:bg-[#f4efe8]'
+                }`}
+              >
+                <div
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm"
+                  style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
+                >
+                  <Camera className="w-7 h-7" />
                 </div>
-              ) : (
-                /* Primary Capture Buttons */
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`p-4 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 text-center transition-all cursor-pointer group ${
-                      isDark
-                        ? 'border-white/15 hover:border-amber-400/60 bg-[#1c1a24] hover:bg-[#22202c]'
-                        : 'border-[#eae3d8] hover:border-[#0284c7] bg-[#fbf9f6] hover:bg-[#f4efe8]'
-                    }`}
-                  >
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center transition-transform group-hover:scale-110"
-                      style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
-                    >
-                      <Camera className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <span className="block text-xs font-bold">
-                        {scannedPages.length > 0 ? `Snap Sample #${scannedPages.length + 1}` : 'Snap / Upload Photo'}
-                      </span>
-                      <span className={`text-[10px] ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
-                        Camera or file gallery
-                      </span>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={startLiveCamera}
-                    className={`p-4 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 text-center transition-all cursor-pointer group ${
-                      isDark
-                        ? 'border-white/15 hover:border-amber-400/60 bg-[#1c1a24] hover:bg-[#22202c]'
-                        : 'border-[#eae3d8] hover:border-[#0284c7] bg-[#fbf9f6] hover:bg-[#f4efe8]'
-                    }`}
-                  >
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center transition-transform group-hover:scale-110"
-                      style={{ backgroundColor: `${secondaryColor}20`, color: secondaryColor }}
-                    >
-                      <Eye className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <span className="block text-xs font-bold">Live Viewfinder</span>
-                      <span className={`text-[10px] ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
-                        Align directly in browser
-                      </span>
-                    </div>
-                  </button>
+                <div>
+                  <span className="block text-sm font-bold font-editorial">
+                    {scannedPages.length > 0 ? `Snap Sample #${scannedPages.length + 1}` : 'Snap or Upload Page Photo'}
+                  </span>
+                  <span className={`text-xs mt-0.5 block ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+                    Uses your phone's camera or photo gallery for high-resolution clarity
+                  </span>
                 </div>
-              )}
+              </button>
 
               {/* Presets Alternative (Shown when no multi-page scanning active) */}
               {scannedPages.length === 0 && (
