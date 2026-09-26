@@ -53,13 +53,13 @@ export function StatsOverview({ books, sessions, baselineWPM, palette, isDark })
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <div className="grid grid-cols-4 gap-2 sm:gap-3.5">
       {stats.map((s) => {
         const Icon = s.icon;
         return (
           <div
             key={s.label}
-            className={`p-4 sm:p-5 flex flex-col justify-between text-left rounded-2xl border transition-all duration-300 ${
+            className={`p-2.5 sm:p-4 flex flex-col justify-between text-left rounded-xl sm:rounded-2xl border transition-all duration-300 ${
               isDark ? 'bg-[#17161c] border-white/10' : 'cozy-card'
             }`}
             style={
@@ -71,24 +71,26 @@ export function StatsOverview({ books, sessions, baselineWPM, palette, isDark })
                 : undefined
             }
           >
-            <div className="flex items-center justify-between mb-3">
-              <span className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className={`text-[9px] sm:text-xs font-semibold uppercase tracking-wider truncate mr-1 ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
                 {s.label}
               </span>
               <div
-                className="p-2 rounded-xl"
+                className="p-1 sm:p-1.5 rounded-lg shrink-0"
                 style={{ backgroundColor: `${s.color}20` }}
               >
-                <Icon className="w-4 h-4" style={{ color: s.color }} />
+                <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5" style={{ color: s.color }} />
               </div>
             </div>
             <div>
-              <div className={`text-2xl sm:text-3xl font-extrabold font-mono tracking-tight ${
+              <div className={`text-lg sm:text-2xl font-extrabold font-mono tracking-tight leading-none ${
                 isDark ? 'text-white' : 'text-stone-900'
               }`}>
                 {s.value}
               </div>
-              <div className={`text-[11px] mt-1 ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>{s.sub}</div>
+              <div className={`text-[9px] sm:text-[11px] mt-1 truncate ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+                {s.sub}
+              </div>
             </div>
           </div>
         );

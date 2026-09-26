@@ -2,7 +2,7 @@
 
 > **AUTO-GENERATED SYSTEM INDEX** — DO NOT EDIT MANUALLY.
 > Regenerate with `npm run index` or automatically via `npm run build`.
-> Last Index Run: 2026-09-26T19:24:58.838Z
+> Last Index Run: 2026-09-26T19:27:51.914Z
 
 ## 🎯 1. System Sources of Truth (Singletons, Engines & Stores)
 
@@ -65,7 +65,7 @@ graph TD
 
 ## 📦 3. Module Catalog & Architectural Role
 
-Total workspace files tracked: **79** | Total LOC: **56413**
+Total workspace files tracked: **79** | Total LOC: **56415**
 
 | File | LOC | Type / Architectural Role | Exports & Public Symbols | Storage / APIs |
 | :--- | :--- | :--- | :--- | :--- |
@@ -93,7 +93,7 @@ Total workspace files tracked: **79** | Total LOC: **56413**
 | [`src/components/analytics/BookCalendarHeatmap.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/analytics/BookCalendarHeatmap.jsx) | 280 | Dumb UI Presentation | `BookCalendarHeatmap()`, `getCellStyles()` | — |
 | [`src/components/analytics/GenreBreakdown.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/analytics/GenreBreakdown.jsx) | 101 | Dumb UI Presentation | `GenreBreakdown()` | — |
 | [`src/components/analytics/ReadingTrends.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/analytics/ReadingTrends.jsx) | 153 | Dumb UI Presentation | `ReadingTrends()` | — |
-| [`src/components/analytics/StatsOverview.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/analytics/StatsOverview.jsx) | 99 | Dumb UI Presentation | `StatsOverview()` | — |
+| [`src/components/analytics/StatsOverview.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/analytics/StatsOverview.jsx) | 101 | Dumb UI Presentation | `StatsOverview()` | — |
 | [`src/components/current/CurrentBookHero.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/current/CurrentBookHero.jsx) | 333 | Dumb UI Presentation | `CurrentBookHero()`, `handleSavePage()` | — |
 | [`src/components/current/PaceStatsCard.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/current/PaceStatsCard.jsx) | 227 | Dumb UI Presentation | `PaceStatsCard()` | — |
 | [`src/components/current/ReadingCockpit.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/current/ReadingCockpit.jsx) | 237 | Dumb UI Presentation | `ReadingCockpit()`, `handleStart()`, `handlePause()`, `handleResume()` | — |

@@ -19,33 +19,33 @@ export function GenreBreakdown({ books, palette, isDark }) {
 
   return (
     <div
-      className={`p-6 rounded-2xl border transition-colors duration-500 ${
+      className={`p-4 sm:p-5 rounded-2xl border transition-colors duration-500 ${
         isDark
           ? 'bg-[#17161c] border-white/10 text-white shadow-xl'
           : 'cozy-card'
       }`}
     >
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <PieChart
-            className="w-5 h-5 transition-colors"
+            className="w-4 h-4 transition-colors"
             style={{ color: primaryColor }}
           />
           <h3
-            className={`text-lg font-bold font-editorial ${
+            className={`text-base sm:text-lg font-bold font-editorial ${
               isDark ? 'text-white' : 'text-stone-900'
             }`}
           >
             Genre Landscape
           </h3>
         </div>
-        <span className={`text-xs font-medium ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+        <span className={`text-[11px] sm:text-xs font-medium ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
           {genreStats.length} Genres Explored
         </span>
       </div>
 
       {genreStats.length > 0 ? (
-        <div className="space-y-3.5">
+        <div className="space-y-2.5">
           {genreStats.map((item, index) => {
             const gradient = defaultGradients[index % defaultGradients.length];
             return (
