@@ -5,7 +5,7 @@ import { sessionService } from '../../services/sessionService';
 import confetti from 'canvas-confetti';
 
 export function FinishSessionModal({ palette, isDark }) {
-  const { isFinishSessionOpen, pendingSessionSummary, closeFinishSession } = useUIStore();
+  const { isFinishSessionOpen, pendingSessionSummary, closeFinishSession, openCompletedCard } = useUIStore();
   const [endPage, setEndPage] = useState('');
   const [excludeFromPace, setExcludeFromPace] = useState(false);
 
@@ -38,11 +38,14 @@ export function FinishSessionModal({ palette, isDark }) {
       excludeFromPace
     });
 
+    closeFinishSession();
+
     if (book && book.pages_total && finalEndPage >= book.pages_total) {
       confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+      setTimeout(() => {
+        openCompletedCard(book);
+      }, 400);
     }
-
-    closeFinishSession();
   };
 
   const pagesReadPreview = Math.max(0, (parseInt(endPage, 10) || startPage) - startPage);

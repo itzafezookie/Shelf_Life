@@ -19,12 +19,14 @@ import {
   MessageSquare,
   Quote,
   Copy,
-  Check
+  Check,
+  Share2
 } from 'lucide-react';
 import { useUIStore } from '../../stores/useUIStore';
 import { bookService } from '../../services/bookService';
 import { sessionService } from '../../services/sessionService';
 import { analyticsEngine } from '../../services/analyticsEngine';
+import { BookCalendarHeatmap } from '../analytics/BookCalendarHeatmap';
 import confetti from 'canvas-confetti';
 
 export function BookDetailModal({
@@ -35,7 +37,14 @@ export function BookDetailModal({
   palette,
   isDark
 }) {
-  const { isDetailModalOpen, selectedBookId, closeBookDetail, openPageScanner, openQuoteScanner } = useUIStore();
+  const {
+    isDetailModalOpen,
+    selectedBookId,
+    closeBookDetail,
+    openPageScanner,
+    openQuoteScanner,
+    openCompletedCard
+  } = useUIStore();
   const book = (books || []).find((b) => b.id === selectedBookId);
 
   // View state: 'overview' (default dossier & history) | 'edit' (settings form)
@@ -372,9 +381,9 @@ export function BookDetailModal({
                   </div>
                 </div>
 
-                {/* Set as focus button if not currently focus */}
-                {!isCurrentFocus && (
-                  <div className="mt-3">
+                {/* Quick Book Actions: Focus / Share Card */}
+                <div className="mt-3 flex items-center gap-2 flex-wrap">
+                  {!isCurrentFocus && (
                     <button
                       type="button"
                       onClick={handleSetFocus}
@@ -387,8 +396,22 @@ export function BookDetailModal({
                       <PlayCircle className="w-3.5 h-3.5" style={{ color: primaryColor }} />
                       <span>Make Active Book</span>
                     </button>
-                  </div>
-                )}
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => openCompletedCard(book)}
+                    className={`py-1 px-3 text-xs rounded-xl font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer ${
+                      isDark
+                        ? 'bg-white/5 text-stone-200 hover:bg-white/10 border border-white/10'
+                        : 'bg-white text-stone-700 hover:bg-stone-50 border border-stone-200 shadow-2xs'
+                    }`}
+                    title="Generate and share palette-themed book completion card"
+                  >
+                    <Share2 className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+                    <span>Share Card</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -633,17 +656,25 @@ export function BookDetailModal({
               )}
             </div>
 
-            {/* Session History Log Section */}
+            {/* Session History Log Section & Calendar Heatmap */}
             <div className="space-y-3 pt-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <History className="w-4 h-4" style={{ color: primaryColor }} />
-                  <h5 className="text-sm font-bold font-editorial">Reading Session History</h5>
+                  <h5 className="text-sm font-bold font-editorial">Reading Activity & History</h5>
                 </div>
                 <span className={`text-xs font-mono ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
-                  {bookSessions.length} logged
+                  {bookSessions.length} session{bookSessions.length === 1 ? '' : 's'} logged
                 </span>
               </div>
+
+              {/* Per-Book Date-Wrapped Calendar Heatmap */}
+              <BookCalendarHeatmap
+                sessions={bookSessions}
+                book={book}
+                palette={palette}
+                isDark={isDark}
+              />
 
               {bookSessions.length > 0 ? (
                 <div className="space-y-2 max-h-56 overflow-y-auto pr-1">

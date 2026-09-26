@@ -51,6 +51,12 @@ export const useUIStore = create((set) => ({
   openQuoteScanner: (book) => set({ quoteScannerBook: book, isQuoteScannerOpen: true }),
   closeQuoteScanner: () => set({ quoteScannerBook: null, isQuoteScannerOpen: false }),
 
+  // Shareable Book Completed Card Modal
+  isCompletedCardOpen: false,
+  completedCardBook: null,
+  openCompletedCard: (book) => set({ completedCardBook: book, isCompletedCardOpen: true }),
+  closeCompletedCard: () => set({ completedCardBook: null, isCompletedCardOpen: false }),
+
   // Library Filtering & Search
   libraryFilter: 'all', // 'all' | 'reading' | 'to-read' | 'completed'
   setLibraryFilter: (filter) => set({ libraryFilter: filter }),

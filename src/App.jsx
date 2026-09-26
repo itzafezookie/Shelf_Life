@@ -29,6 +29,7 @@ import { PageScannerModal } from './components/modals/PageScannerModal';
 import { PaletteCustomizerModal } from './components/modals/PaletteCustomizerModal';
 import { ReadingSpeedTestModal } from './components/modals/ReadingSpeedTestModal';
 import { QuoteScannerModal } from './components/modals/QuoteScannerModal';
+import { BookCompletedCardModal } from './components/modals/BookCompletedCardModal';
 
 export function App() {
   const { activeTab } = useUIStore();
@@ -229,6 +230,12 @@ export function App() {
       <PaletteCustomizerModal palette={bookPalette} isDark={isDarkApp} />
       <ReadingSpeedTestModal palette={bookPalette} isDark={isDarkApp} />
       <QuoteScannerModal palette={bookPalette} isDark={isDarkApp} />
+      <BookCompletedCardModal
+        books={books}
+        sessions={sessions}
+        baselineWPM={baselineWPM}
+        isDarkApp={isDarkApp}
+      />
     </div>
   );
 }
