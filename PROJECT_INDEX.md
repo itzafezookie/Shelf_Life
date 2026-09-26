@@ -2,7 +2,7 @@
 
 > **AUTO-GENERATED SYSTEM INDEX** — DO NOT EDIT MANUALLY.
 > Regenerate with `npm run index` or automatically via `npm run build`.
-> Last Index Run: 2026-09-26T17:01:32.145Z
+> Last Index Run: 2026-09-26T17:09:25.828Z
 
 ## 🎯 1. System Sources of Truth (Singletons, Engines & Stores)
 
@@ -65,12 +65,12 @@ graph TD
 
 ## 📦 3. Module Catalog & Architectural Role
 
-Total workspace files tracked: **80** | Total LOC: **58024**
+Total workspace files tracked: **80** | Total LOC: **57988**
 
 | File | LOC | Type / Architectural Role | Exports & Public Symbols | Storage / APIs |
 | :--- | :--- | :--- | :--- | :--- |
 | [`.github/workflows/deploy.yml`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/.github/workflows/deploy.yml) | 50 | Static Asset | — | — |
-| [`.gitignore`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/.gitignore) | 37 | Static Asset | — | — |
+| [`.gitignore`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/.gitignore) | 38 | Static Asset | — | — |
 | [`default-cover-large.svg`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/default-cover-large.svg) | 4 | Static Asset | — | — |
 | [`default-cover-small.svg`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/default-cover-small.svg) | 4 | Static Asset | — | — |
 | [`default-cover.svg`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/default-cover.svg) | 4 | Static Asset | — | — |
@@ -117,7 +117,7 @@ Total workspace files tracked: **80** | Total LOC: **58024**
 | [`src/components/modals/FinishSessionModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/FinishSessionModal.jsx) | 190 | Dumb UI Presentation | `FinishSessionModal()`, `handleSubmit()` | — |
 | [`src/components/modals/PageScannerModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/PageScannerModal.jsx) | 707 | Dumb UI Presentation | `PageScannerModal()`, `handleFileChange()`, `processImage()`, `handleRemoveSample()` | — |
 | [`src/components/modals/PaletteCustomizerModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/PaletteCustomizerModal.jsx) | 353 | Dumb UI Presentation | `PaletteCustomizerModal()`, `loadColors()`, `handleSelectSwatch()`, `handleResetToAuto()` | — |
-| [`src/components/modals/QuoteScannerModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/QuoteScannerModal.jsx) | 986 | Dumb UI Presentation | `QuoteScannerModal()`, `handleFileChange()`, `executeOcrOnPassage()`, `handleWordClick()` | — |
+| [`src/components/modals/QuoteScannerModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/QuoteScannerModal.jsx) | 949 | Dumb UI Presentation | `QuoteScannerModal()`, `handleFileChange()`, `executeOcrOnPassage()`, `handleWordClick()` | — |
 | [`src/components/modals/ReadingSpeedTestModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/ReadingSpeedTestModal.jsx) | 602 | Dumb UI Presentation | `ReadingSpeedTestModal()`, `loadFreshExcerpt()`, `handleStartReading()`, `handleFinishReading()` | — |
 | [`src/components/modals/SpeedOverrideModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/SpeedOverrideModal.jsx) | 147 | Dumb UI Presentation | `SpeedOverrideModal()`, `handleSave()` | — |
 | [`src/components/scene/FullPageCanvas.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/scene/FullPageCanvas.jsx) | 66 | Dumb UI Presentation | `FullPageCanvas()` | — |
@@ -157,7 +157,7 @@ Total workspace files tracked: **80** | Total LOC: **58024**
 - [`src/components/library/BookDetailModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/BookDetailModal.jsx) (1105 lines) — *Must be decomposed into smaller sub-components.*
 - [`src/components/modals/BookCompletedCardModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/BookCompletedCardModal.jsx) (686 lines) — *Must be decomposed into smaller sub-components.*
 - [`src/components/modals/PageScannerModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/PageScannerModal.jsx) (707 lines) — *Must be decomposed into smaller sub-components.*
-- [`src/components/modals/QuoteScannerModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/QuoteScannerModal.jsx) (986 lines) — *Must be decomposed into smaller sub-components.*
+- [`src/components/modals/QuoteScannerModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/QuoteScannerModal.jsx) (949 lines) — *Must be decomposed into smaller sub-components.*
 - [`src/components/modals/ReadingSpeedTestModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/ReadingSpeedTestModal.jsx) (602 lines) — *Must be decomposed into smaller sub-components.*
 
 ### 🚫 Component Timer Violations (Zero Component Timers Mandate)

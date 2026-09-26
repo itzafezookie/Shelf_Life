@@ -154,47 +154,6 @@ export function QuoteScannerModal({ palette, isDark }) {
       const sw = Math.max(50, Math.round(((100 - cropMargins.left - cropMargins.right) / 100) * img.width));
       const sh = Math.max(50, Math.round(((100 - cropMargins.top - cropMargins.bottom) / 100) * img.height));
 
-      // Upscale if cropped text is small so character x-height is ~25-30px for Tesseract LSTM
-      const targetScale = Math.min(3, Math.max(1.5, 1200 / sw));
-      const optWidth = Math.round(sw * targetScale);
-      const optHeight = Math.round(sh * targetScale);
-
-      const canvas = document.createElement('canvas');
-      canvas.width = optWidth;
-      canvas.height = optHeight;
-
-      const ctx = canvas.getContext('2d');
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, optWidth, optHeight);
-
-      // Adaptive Dynamic-Range Contrast Stretch
-      try {
-        const imgData = ctx.getImageData(0, 0, optWidth, optHeight);
-        const d = imgData.data;
-
-        let minL = 255;
-        let maxL = 0;
-        for (let i = 0; i < d.length; i += 4) {
-          const luma = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-          if (luma < minL) minL = luma;
-          if (luma > maxL) maxL = luma;
-        }
-
-        const range = Math.max(35, maxL - minL);
-
-        for (let i = 0; i < d.length; i += 4) {
-          const luma = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-          const stretched = Math.min(255, Math.max(0, ((luma - minL) / range) * 255));
-          d[i] = stretched;
-          d[i + 1] = stretched;
-          d[i + 2] = stretched;
-        }
-        ctx.putImageData(imgData, 0, 0);
-      } catch (procErr) {
-        console.warn('[QuoteScanner] Contrast stretch fallback:', procErr);
-      }
-
       setOcrStatus('Scanning typography neural network (PSM 6)...');
 
       const worker = await createWorker('eng', 1, {
@@ -214,7 +173,11 @@ export function QuoteScannerModal({ palette, isDark }) {
         tessedit_pageseg_mode: 6
       });
 
-      const ret = await worker.recognize(canvas);
+      // Pass raw uncompressed image directly to Tesseract WebAssembly with native rectangle!
+      // This bypasses HTML5 canvas interpolation blur and contrast distortion.
+      const ret = await worker.recognize(rawImageDataUrl, {
+        rectangle: { left: sx, top: sy, width: sw, height: sh }
+      });
       await worker.terminate();
 
       clearInterval(smoothTimer);
@@ -454,7 +417,7 @@ export function QuoteScannerModal({ palette, isDark }) {
                     <div>
                       <h4 className="text-xs font-bold font-editorial">Frame the Passage</h4>
                       <p className={`text-[11px] ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
-                        The yellow box isolates only the text you want to scan
+                        Leave a little space above & below so letters aren't cut in half
                       </p>
                     </div>
 
@@ -543,7 +506,7 @@ export function QuoteScannerModal({ palette, isDark }) {
                     <div className="grid grid-cols-4 gap-1.5 text-[11px] font-semibold">
                       <button
                         type="button"
-                        onClick={() => setCropMargins({ top: 56, bottom: 27, left: 16, right: 10 })}
+                        onClick={() => setCropMargins({ top: 56, bottom: 27, left: 14, right: 8 })}
                         className={`p-1.5 rounded-xl border text-center transition-colors cursor-pointer ${
                           isDark ? 'bg-amber-500/15 border-amber-500/30 text-amber-300' : 'bg-amber-50 border-amber-300 text-amber-900 font-bold'
                         }`}
