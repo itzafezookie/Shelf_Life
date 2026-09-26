@@ -22,6 +22,8 @@ export function PageScannerModal({ palette, isDark }) {
   const [detectedLines, setDetectedLines] = useState(0);
   const [wordsPerLine, setWordsPerLine] = useState(0);
   const [isLiveCameraActive, setIsLiveCameraActive] = useState(false);
+  const [isCameraLoading, setIsCameraLoading] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState('environment'); // 'environment' | 'user'
 
   const fileInputRef = useRef(null);
   const videoRef = useRef(null);
@@ -52,6 +54,7 @@ export function PageScannerModal({ palette, isDark }) {
       setDetectedLines(0);
       setWordsPerLine(0);
       setIsLiveCameraActive(false);
+      setIsCameraLoading(false);
     } else {
       stopLiveCamera();
     }
@@ -70,40 +73,149 @@ export function PageScannerModal({ palette, isDark }) {
       streamRef.current = null;
     }
     setIsLiveCameraActive(false);
+    setIsCameraLoading(false);
   };
 
-  const startLiveCamera = async () => {
-    try {
-      setErrorMessage(null);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-      }
-      setIsLiveCameraActive(true);
-    } catch (err) {
-      console.warn('Live camera access error:', err);
-      setErrorMessage('Could not open live camera viewfinder. Please use the photo upload button instead.');
-      setIsLiveCameraActive(false);
-    }
+  const startLiveCamera = () => {
+    setErrorMessage(null);
+    setIsLiveCameraActive(true);
   };
+
+  // Robust camera stream management once viewfinder mounts
+  useEffect(() => {
+    if (!isLiveCameraActive) {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+      return;
+    }
+
+    let isSubscribed = true;
+
+    async function initCameraStream() {
+      setIsCameraLoading(true);
+      setErrorMessage(null);
+
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+
+      let stream = null;
+
+      // Try progressive camera constraints for mobile compatibility
+      const attempts = [
+        {
+          video: {
+            facingMode: { ideal: cameraFacing },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          },
+          audio: false
+        },
+        {
+          video: {
+            facingMode: cameraFacing
+          },
+          audio: false
+        },
+        {
+          video: {
+            facingMode: { ideal: cameraFacing }
+          },
+          audio: false
+        },
+        {
+          video: true,
+          audio: false
+        }
+      ];
+
+      for (const constraints of attempts) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+          if (stream) break;
+        } catch {
+          // Try next constraint
+        }
+      }
+
+      if (!isSubscribed) {
+        if (stream) stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+
+      if (!stream) {
+        setErrorMessage(
+          'Could not access camera viewfinder. Please ensure camera permissions are allowed, or use "Snap / Upload Photo".'
+        );
+        setIsCameraLoading(false);
+        setIsLiveCameraActive(false);
+        return;
+      }
+
+      streamRef.current = stream;
+
+      if (videoRef.current) {
+        const video = videoRef.current;
+        video.srcObject = stream;
+        video.muted = true;
+        video.playsInline = true;
+        video.setAttribute('playsinline', 'true');
+        video.setAttribute('webkit-playsinline', 'true');
+
+        video.onloadedmetadata = async () => {
+          if (!isSubscribed) return;
+          try {
+            await video.play();
+            setIsCameraLoading(false);
+          } catch (playErr) {
+            console.warn('[PageScanner] Auto-play was prevented:', playErr);
+            setIsCameraLoading(false);
+          }
+        };
+
+        // Safety fallback if onloadedmetadata is delayed
+        setTimeout(() => {
+          if (isSubscribed) {
+            setIsCameraLoading(false);
+            video.play().catch(() => {});
+          }
+        }, 1200);
+      } else {
+        setIsCameraLoading(false);
+      }
+    }
+
+    initCameraStream();
+
+    return () => {
+      isSubscribed = false;
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+    };
+  }, [isLiveCameraActive, cameraFacing]);
 
   const captureFromVideo = () => {
     if (!videoRef.current) return;
     const video = videoRef.current;
+
+    // Verify video stream actually has rendered frames
+    if (!video.videoWidth || !video.videoHeight || video.readyState < 2) {
+      setErrorMessage('Camera preview is still warming up. Please wait a moment and tap again.');
+      return;
+    }
+
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+
     stopLiveCamera();
     processImage(dataUrl);
   };
@@ -193,7 +305,13 @@ export function PageScannerModal({ palette, isDark }) {
         .map((l) => l.trim())
         .filter((l) => l.length > 5);
 
-      const count = Math.max(50, rawWords.length);
+      if (rawWords.length < 10) {
+        throw new Error(
+          'Could not detect enough clear text from this capture. Please ensure good lighting, avoid glare or blur, and frame the full page of text.'
+        );
+      }
+
+      const count = rawWords.length;
       const lineCount = Math.max(1, lines.length);
       const avgWpl = Number((count / lineCount).toFixed(1));
 
@@ -392,8 +510,23 @@ export function PageScannerModal({ palette, isDark }) {
               {/* Live Camera Viewfinder (if active) */}
               {isLiveCameraActive ? (
                 <div className="relative rounded-2xl overflow-hidden border border-white/20 bg-black aspect-3/4 flex flex-col items-center justify-center">
-                  <video ref={videoRef} playsInline autoPlay className="w-full h-full object-cover" />
-                  
+                  <video
+                    ref={videoRef}
+                    playsInline
+                    autoPlay
+                    muted
+                    webkit-playsinline="true"
+                    className="w-full h-full object-cover"
+                  />
+
+                  {/* Loading overlay if stream is starting */}
+                  {isCameraLoading && (
+                    <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center gap-2 z-10">
+                      <RefreshCw className="w-6 h-6 text-amber-400 animate-spin" />
+                      <span className="text-xs text-stone-300 font-medium">Opening camera...</span>
+                    </div>
+                  )}
+
                   {/* Target frame guide */}
                   <div className="absolute inset-6 border-2 border-dashed border-amber-400/80 rounded-xl pointer-events-none flex items-center justify-center">
                     <span className="bg-black/60 text-amber-300 text-[11px] font-mono px-2 py-0.5 rounded-full">
@@ -401,8 +534,18 @@ export function PageScannerModal({ palette, isDark }) {
                     </span>
                   </div>
 
+                  {/* Flip Camera button in top-right */}
+                  <button
+                    type="button"
+                    onClick={() => setCameraFacing((prev) => (prev === 'environment' ? 'user' : 'environment'))}
+                    className="absolute top-3 right-3 p-2 rounded-xl bg-black/60 text-white hover:bg-black/80 backdrop-blur-xs cursor-pointer z-10"
+                    title="Switch camera"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+
                   {/* Camera control buttons overlay */}
-                  <div className="absolute bottom-4 inset-x-4 flex items-center justify-between">
+                  <div className="absolute bottom-4 inset-x-4 flex items-center justify-between z-10">
                     <button
                       type="button"
                       onClick={stopLiveCamera}
@@ -413,7 +556,8 @@ export function PageScannerModal({ palette, isDark }) {
                     <button
                       type="button"
                       onClick={captureFromVideo}
-                      className="px-5 py-2 text-xs font-bold rounded-xl shadow-lg flex items-center gap-1.5 cursor-pointer text-white"
+                      disabled={isCameraLoading}
+                      className="px-5 py-2 text-xs font-bold rounded-xl shadow-lg flex items-center gap-1.5 cursor-pointer text-white disabled:opacity-50"
                       style={{ backgroundColor: primaryColor }}
                     >
                       <Camera className="w-4 h-4" />
