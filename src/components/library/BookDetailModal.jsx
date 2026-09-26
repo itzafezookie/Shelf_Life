@@ -16,7 +16,10 @@ import {
   ArrowLeft,
   CheckCircle2,
   Bookmark,
-  MessageSquare
+  MessageSquare,
+  Quote,
+  Copy,
+  Check
 } from 'lucide-react';
 import { useUIStore } from '../../stores/useUIStore';
 import { bookService } from '../../services/bookService';
@@ -32,7 +35,7 @@ export function BookDetailModal({
   palette,
   isDark
 }) {
-  const { isDetailModalOpen, selectedBookId, closeBookDetail, openPageScanner } = useUIStore();
+  const { isDetailModalOpen, selectedBookId, closeBookDetail, openPageScanner, openQuoteScanner } = useUIStore();
   const book = (books || []).find((b) => b.id === selectedBookId);
 
   // View state: 'overview' (default dossier & history) | 'edit' (settings form)
@@ -50,6 +53,8 @@ export function BookDetailModal({
   const [editThemeMode, setEditThemeMode] = useState('auto');
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [deletingSessionId, setDeletingSessionId] = useState(null);
+  const [copiedQuoteId, setCopiedQuoteId] = useState(null);
+  const [deletingQuoteId, setDeletingQuoteId] = useState(null);
 
   const primaryColor = palette?.primary || '#0284c7';
   const secondaryColor = palette?.secondary || '#ec4899';
@@ -170,6 +175,22 @@ export function BookDetailModal({
   const handleDeleteSession = async (sessionId) => {
     await sessionService.deleteSession(sessionId);
     setDeletingSessionId(null);
+  };
+
+  const handleToggleFavoriteQuote = async (quoteId) => {
+    await bookService.toggleFavoriteQuote(book.id, quoteId);
+  };
+
+  const handleDeleteQuote = async (quoteId) => {
+    await bookService.removeQuote(book.id, quoteId);
+    setDeletingQuoteId(null);
+  };
+
+  const handleCopyQuote = (quote) => {
+    const formatted = `"${quote.text}"\n— ${book.author || 'Unknown Author'}, ${book.title}${quote.page ? ` (p. ${quote.page})` : ''}`;
+    navigator.clipboard.writeText(formatted);
+    setCopiedQuoteId(quote.id);
+    setTimeout(() => setCopiedQuoteId(null), 2000);
   };
 
   const percentage =
@@ -452,6 +473,164 @@ export function BookDetailModal({
                   ≈ {Math.round(bookDensity * (book.pages_total || 0)).toLocaleString()} words
                 </div>
               </div>
+            </div>
+
+            {/* Memorable Quotes & Highlights Section */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Quote className="w-4 h-4" style={{ color: primaryColor }} />
+                  <h5 className="text-sm font-bold font-editorial">Memorable Quotes & Highlights</h5>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-mono ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+                    {(book.quotes || []).length} saved
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => openQuoteScanner(book)}
+                    className="px-2.5 py-1 text-xs font-bold rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                    style={{
+                      backgroundColor: `${primaryColor}15`,
+                      color: primaryColor,
+                      borderColor: `${primaryColor}40`
+                    }}
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                    <span>+ Snap Quote</span>
+                  </button>
+                </div>
+              </div>
+
+              {(book.quotes || []).length > 0 ? (
+                <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                  {(book.quotes || []).map((quote) => {
+                    const isCopied = copiedQuoteId === quote.id;
+                    const isDeleting = deletingQuoteId === quote.id;
+
+                    return (
+                      <div
+                        key={quote.id}
+                        className={`p-3.5 rounded-2xl border transition-all ${
+                          quote.is_favorite
+                            ? isDark
+                              ? 'bg-amber-950/20 border-amber-500/40 shadow-xs'
+                              : 'bg-amber-50/70 border-amber-300 shadow-xs'
+                            : isDark
+                            ? 'bg-[#1b1925] border-white/10 hover:border-white/20'
+                            : 'bg-[#faf8f4] border-[#eae3d8] hover:border-stone-300'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="font-serif italic text-sm leading-relaxed flex-1 select-text">
+                            “{quote.text}”
+                          </p>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-1 shrink-0 pt-0.5">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleFavoriteQuote(quote.id)}
+                              className="p-1 rounded text-stone-400 hover:text-amber-400 cursor-pointer transition-colors"
+                              title={quote.is_favorite ? 'Favorite Quote (Featured on share card)' : 'Mark as Favorite Quote'}
+                            >
+                              <Star
+                                className={`w-3.5 h-3.5 ${
+                                  quote.is_favorite ? 'text-amber-400 fill-amber-400' : 'text-stone-400'
+                                }`}
+                              />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleCopyQuote(quote)}
+                              className="p-1 rounded text-stone-400 hover:text-stone-200 cursor-pointer transition-colors"
+                              title="Copy quote to clipboard"
+                            >
+                              {isCopied ? (
+                                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              ) : (
+                                <Copy className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+
+                            {isDeleting ? (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteQuote(quote.id)}
+                                  className="px-1.5 py-0.5 text-[10px] font-bold bg-rose-600 text-white rounded cursor-pointer"
+                                >
+                                  Delete
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDeletingQuoteId(null)}
+                                  className="px-1 py-0.5 text-[10px] text-stone-400 hover:text-white cursor-pointer"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setDeletingQuoteId(quote.id)}
+                                className="p-1 rounded text-stone-400 hover:text-rose-400 transition-colors cursor-pointer"
+                                title="Delete quote"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Metadata row: page, context note, favorite badge */}
+                        <div className="flex items-center gap-2 flex-wrap pt-2 mt-2 border-t border-dashed border-stone-200/50 dark:border-white/5 text-[11px]">
+                          {quote.page && (
+                            <span className="font-mono font-semibold px-2 py-0.5 rounded-md bg-stone-100 dark:bg-white/10 text-stone-700 dark:text-stone-300">
+                              p. {quote.page}
+                            </span>
+                          )}
+                          {quote.note && (
+                            <span className={`italic ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+                              — {quote.note}
+                            </span>
+                          )}
+                          {quote.is_favorite && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 border border-amber-500/30 ml-auto">
+                              ★ Featured on Completion Card
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div
+                  className={`p-4 rounded-2xl border text-center text-xs space-y-2 ${
+                    isDark ? 'bg-white/3 border-white/5 text-stone-400' : 'bg-stone-50 border-stone-200 text-stone-500'
+                  }`}
+                >
+                  <p>No quotes saved for this book yet.</p>
+                  <p className="text-[11px] opacity-75 max-w-sm mx-auto">
+                    Use the OCR camera snapper to scan a book page and tap to select the exact quote passage to keep in your dossier.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => openQuoteScanner(book)}
+                    className="py-1.5 px-3 text-xs font-bold rounded-xl border inline-flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs mt-1"
+                    style={{
+                      backgroundColor: `${primaryColor}15`,
+                      color: primaryColor,
+                      borderColor: `${primaryColor}40`
+                    }}
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                    <span>Snap First Quote</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Session History Log Section */}

@@ -85,6 +85,84 @@ export const bookService = {
     return setting ? setting.value : null;
   },
 
+  async addQuote(bookId, quoteData) {
+    const book = await db.books.get(bookId);
+    if (!book) throw new Error(`Book ${bookId} not found`);
+
+    const existingQuotes = Array.isArray(book.quotes) ? book.quotes : [];
+    const newQuote = {
+      id: quoteData.id || `quote_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      text: (quoteData.text || '').trim(),
+      page: quoteData.page ? parseInt(quoteData.page, 10) : (book.current_page || null),
+      is_favorite: Boolean(quoteData.is_favorite),
+      note: (quoteData.note || '').trim(),
+      created_at: new Date().toISOString()
+    };
+
+    let updatedQuotes;
+    if (newQuote.is_favorite) {
+      updatedQuotes = existingQuotes.map((q) => ({ ...q, is_favorite: false }));
+      updatedQuotes.push(newQuote);
+    } else {
+      updatedQuotes = [...existingQuotes, newQuote];
+    }
+
+    await db.books.update(bookId, { quotes: updatedQuotes });
+    return newQuote;
+  },
+
+  async updateQuote(bookId, quoteId, updates) {
+    const book = await db.books.get(bookId);
+    if (!book) throw new Error(`Book ${bookId} not found`);
+
+    const existingQuotes = Array.isArray(book.quotes) ? book.quotes : [];
+    const updatedQuotes = existingQuotes.map((q) => {
+      if (q.id === quoteId) {
+        return { ...q, ...updates };
+      }
+      if (updates.is_favorite && q.id !== quoteId) {
+        return { ...q, is_favorite: false };
+      }
+      return q;
+    });
+
+    await db.books.update(bookId, { quotes: updatedQuotes });
+    return updatedQuotes;
+  },
+
+  async removeQuote(bookId, quoteId) {
+    const book = await db.books.get(bookId);
+    if (!book) throw new Error(`Book ${bookId} not found`);
+
+    const existingQuotes = Array.isArray(book.quotes) ? book.quotes : [];
+    const updatedQuotes = existingQuotes.filter((q) => q.id !== quoteId);
+
+    await db.books.update(bookId, { quotes: updatedQuotes });
+    return updatedQuotes;
+  },
+
+  async toggleFavoriteQuote(bookId, quoteId) {
+    const book = await db.books.get(bookId);
+    if (!book) throw new Error(`Book ${bookId} not found`);
+
+    const existingQuotes = Array.isArray(book.quotes) ? book.quotes : [];
+    const target = existingQuotes.find((q) => q.id === quoteId);
+    const willBeFavorite = !target?.is_favorite;
+
+    const updatedQuotes = existingQuotes.map((q) => {
+      if (q.id === quoteId) {
+        return { ...q, is_favorite: willBeFavorite };
+      }
+      if (willBeFavorite) {
+        return { ...q, is_favorite: false };
+      }
+      return q;
+    });
+
+    await db.books.update(bookId, { quotes: updatedQuotes });
+    return updatedQuotes;
+  },
+
   async searchOpenLibrary(query) {
     if (!query || query.trim().length < 2) return [];
 

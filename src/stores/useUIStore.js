@@ -45,6 +45,12 @@ export const useUIStore = create((set) => ({
   openPaletteCustomizer: (book) => set({ paletteCustomizerBook: book, isPaletteCustomizerOpen: true }),
   closePaletteCustomizer: () => set({ paletteCustomizerBook: null, isPaletteCustomizerOpen: false }),
 
+  // Book Quote & Highlight Snapper Modal
+  isQuoteScannerOpen: false,
+  quoteScannerBook: null,
+  openQuoteScanner: (book) => set({ quoteScannerBook: book, isQuoteScannerOpen: true }),
+  closeQuoteScanner: () => set({ quoteScannerBook: null, isQuoteScannerOpen: false }),
+
   // Library Filtering & Search
   libraryFilter: 'all', // 'all' | 'reading' | 'to-read' | 'completed'
   setLibraryFilter: (filter) => set({ libraryFilter: filter }),
