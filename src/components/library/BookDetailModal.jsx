@@ -6,7 +6,7 @@ import {
   PlayCircle,
   Star,
   AlertTriangle,
-  Camera,
+  Calculator,
   Sliders,
   Clock,
   Gauge,
@@ -627,7 +627,7 @@ export function BookDetailModal({
         {/* VIEW 2: EDIT BOOK SETTINGS (WHEN USER TOGGLES EDIT)       */}
         {/* ========================================================= */}
         {viewMode === 'edit' && (
-          <form onSubmit={handleSaveEdit} className="p-5 overflow-y-auto space-y-4 flex-1">
+          <form onSubmit={handleSaveEdit} className="p-5 overflow-y-auto space-y-3 flex-1">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelClass}>Book Title</label>
@@ -650,24 +650,22 @@ export function BookDetailModal({
               </div>
             </div>
 
-            {/* Progress Slider / Numbers */}
+            {/* Reading Length & Density Calibration (Unified Compact Card) */}
             <div
-              className={`p-4 rounded-xl border space-y-2.5 ${
+              className={`p-3.5 rounded-2xl border space-y-3 ${
                 isDark ? 'bg-[#1c1a24] border-white/10' : 'bg-[#fbf9f6] border-[#eae3d8]'
               }`}
             >
-              <div className="flex items-center justify-between text-xs font-semibold">
-                <span className={isDark ? 'text-stone-400' : 'text-stone-600'}>Pages & Progress</span>
-                <span className="font-bold font-mono" style={{ color: primaryColor }}>
-                  {editTotal > 0 ? Math.min(100, Math.round((editPage / editTotal) * 100)) : 0}%
-                </span>
-              </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={`block text-[11px] mb-1 font-medium ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>
-                    Current Page
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className={`text-[11px] font-semibold ${isDark ? 'text-stone-300' : 'text-stone-700'}`}>
+                      Current Page
+                    </label>
+                    <span className="font-mono text-[10px] font-bold" style={{ color: primaryColor }}>
+                      {editTotal > 0 ? Math.min(100, Math.round((editPage / editTotal) * 100)) : 0}%
+                    </span>
+                  </div>
                   <input
                     type="number"
                     min="0"
@@ -677,8 +675,9 @@ export function BookDetailModal({
                     className={`${inputClass} font-mono`}
                   />
                 </div>
+
                 <div>
-                  <label className={`block text-[11px] mb-1 font-medium ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>
+                  <label className={`block text-[11px] font-semibold mb-1 ${isDark ? 'text-stone-300' : 'text-stone-700'}`}>
                     Total Pages
                   </label>
                   <input
@@ -690,50 +689,40 @@ export function BookDetailModal({
                   />
                 </div>
               </div>
-            </div>
 
-            {/* Typography Density & OCR Calibration */}
-            <div
-              className={`p-3.5 rounded-xl border space-y-2 ${
-                isDark ? 'bg-[#1c1a24] border-white/10' : 'bg-[#fbf9f6] border-[#eae3d8]'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <Sliders className="w-3.5 h-3.5" style={{ color: primaryColor }} />
-                  <span className="text-xs font-semibold">Typography Density</span>
+              {/* Density Row */}
+              <div className="pt-2.5 border-t border-dashed border-stone-200/60 dark:border-white/5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-24">
+                    <input
+                      type="number"
+                      min="50"
+                      max="1000"
+                      value={editWordsPerPage}
+                      onChange={(e) => setEditWordsPerPage(e.target.value)}
+                      className={`${inputClass} font-mono text-center font-bold py-1`}
+                    />
+                  </div>
+                  <div className="text-xs">
+                    <span className="font-medium text-stone-400">words / page</span>
+                    <span className={`block text-[10px] ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+                      ≈ {Math.round((parseInt(editWordsPerPage, 10) || 250) * (parseInt(editTotal, 10) || 0)).toLocaleString()} total words
+                    </span>
+                  </div>
                 </div>
+
                 <button
                   type="button"
                   onClick={() => openPageScanner(book, (density) => setEditWordsPerPage(density))}
-                  className={`px-2.5 py-1 text-xs font-bold rounded-lg border flex items-center gap-1.5 transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 text-xs font-bold rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
                     isDark
-                      ? 'bg-[#201e29] hover:bg-[#2c2937] text-white border-white/15'
-                      : 'bg-white hover:bg-stone-50 text-stone-800 border-[#eae3d8] shadow-2xs'
+                      ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30'
+                      : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300 shadow-2xs'
                   }`}
                 >
-                  <Camera className="w-3.5 h-3.5" style={{ color: primaryColor }} />
-                  <span>Scan Page</span>
+                  <Calculator className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Density Calculator</span>
                 </button>
-              </div>
-
-              <div className="flex items-center gap-3 pt-1">
-                <div className="w-32">
-                  <input
-                    type="number"
-                    min="50"
-                    max="1000"
-                    value={editWordsPerPage}
-                    onChange={(e) => setEditWordsPerPage(e.target.value)}
-                    className={`${inputClass} font-mono text-center font-bold`}
-                  />
-                </div>
-                <div className="text-xs">
-                  <span className="font-medium text-stone-400">words / page</span>
-                  <span className={`block text-[11px] ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
-                    ≈ {Math.round((parseInt(editWordsPerPage, 10) || 250) * (parseInt(editTotal, 10) || 0)).toLocaleString()} total words
-                  </span>
-                </div>
               </div>
             </div>
 
@@ -826,7 +815,7 @@ export function BookDetailModal({
             <div>
               <label className={labelClass}>Personal Notes</label>
               <textarea
-                rows="3"
+                rows="2"
                 placeholder="Key thoughts, memorable quotes, or reading notes..."
                 value={editNotes}
                 onChange={(e) => setEditNotes(e.target.value)}

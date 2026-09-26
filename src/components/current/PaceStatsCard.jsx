@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, Clock, Gauge, Calendar, Target, Camera, Sparkles } from 'lucide-react';
+import { AlertCircle, Clock, Gauge, Calendar, Target, Calculator, Sparkles } from 'lucide-react';
 import { analyticsEngine } from '../../services/analyticsEngine';
 import { useUIStore } from '../../stores/useUIStore';
 
@@ -217,8 +217,8 @@ export function PaceStatsCard({ book, sessions, baselineWPM = 250, palette }) {
               : 'bg-white hover:bg-stone-50 text-stone-700 border border-[#eae3d8] shadow-2xs'
           }`}
         >
-          <Camera className="w-3.5 h-3.5" style={{ color: primaryColor }} />
-          <span>{isCalibrated ? 'Rescan Page' : 'Scan Page'}</span>
+          <Calculator className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+          <span>Density Calculator</span>
         </button>
       </div>
     </div>

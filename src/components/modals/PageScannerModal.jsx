@@ -87,19 +87,19 @@ export function PageScannerModal({ palette, isDark }) {
         }`}
       >
         {/* Header */}
-        <div className={`p-5 border-b flex items-center justify-between ${isDark ? 'border-white/10' : 'border-[#eae3d8]'}`}>
+        <div className={`p-4 border-b flex items-center justify-between ${isDark ? 'border-white/10' : 'border-[#eae3d8]'}`}>
           <div className="flex items-center gap-3">
             <div
-              className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-xs"
+              className="w-9 h-9 rounded-xl flex items-center justify-center shadow-xs"
               style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
             >
-              <Calculator className="w-5 h-5" />
+              <Calculator className="w-4 h-4" />
             </div>
             <div>
-              <h3 id="page-scanner-title" className="text-base font-bold font-editorial">
+              <h3 id="page-scanner-title" className="text-sm font-bold font-editorial">
                 Page Density & Word Estimator
               </h3>
-              <p className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+              <p className={`text-[11px] ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
                 {pageScannerBook?.title ? `For "${pageScannerBook.title}"` : 'Calculate accurate words per page'}
               </p>
             </div>
@@ -107,33 +107,33 @@ export function PageScannerModal({ palette, isDark }) {
           <button
             type="button"
             onClick={closePageScanner}
-            className={`p-2 rounded-xl border transition-colors cursor-pointer ${
+            className={`p-1.5 rounded-xl border transition-colors cursor-pointer ${
               isDark ? 'border-white/10 hover:bg-white/10 text-stone-400' : 'border-stone-200 hover:bg-stone-100 text-stone-600'
             }`}
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1">
+        <div className="p-4 sm:p-5 overflow-y-auto space-y-3.5 flex-1">
           {/* Instructions banner */}
           <div
-            className={`p-3.5 rounded-2xl border flex items-start gap-3 text-xs leading-relaxed ${
+            className={`p-2.5 rounded-xl border flex items-start gap-2.5 text-[11px] leading-relaxed ${
               isDark ? 'bg-amber-950/20 border-amber-500/30 text-amber-200/90' : 'bg-amber-50 border-amber-200 text-amber-900'
             }`}
           >
-            <BookOpen className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <BookOpen className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
             <span>
-              Open your book to any random full page of text. Count the total lines on the page, then count the words in 3 typical lines to calculate your book's precise page density.
+              Count total lines on any full page of text, then count words in 3 typical lines.
             </span>
           </div>
 
           {/* Manual Entry Form */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Field 1: Total Lines */}
             <div>
-              <label className={`block text-xs font-bold mb-1.5 flex items-center gap-1.5 ${isDark ? 'text-stone-300' : 'text-stone-700'}`}>
+              <label className={`block text-[11px] font-bold mb-1 flex items-center gap-1.5 ${isDark ? 'text-stone-300' : 'text-stone-700'}`}>
                 <AlignLeft className="w-3.5 h-3.5" style={{ color: primaryColor }} />
                 <span>Number of lines on full page:</span>
               </label>
@@ -144,14 +144,14 @@ export function PageScannerModal({ palette, isDark }) {
                   max="80"
                   value={linesPerPage}
                   onChange={(e) => setLinesPerPage(e.target.value)}
-                  className={`w-full p-3 rounded-2xl font-mono text-base font-bold border focus:outline-none transition-colors ${
+                  className={`w-full p-2.5 rounded-xl font-mono text-sm font-bold border focus:outline-none transition-colors ${
                     isDark
                       ? 'bg-[#1c1a26] border-white/10 text-white focus:border-amber-400/50'
                       : 'bg-[#faf8f4] border-[#eae3d8] text-stone-900 focus:border-[#0284c7]'
                   }`}
                   placeholder="e.g. 34"
                 />
-                <span className="absolute right-4 top-3.5 text-xs text-stone-400 font-sans">lines</span>
+                <span className="absolute right-3.5 top-2.5 text-xs text-stone-400 font-sans">lines</span>
               </div>
             </div>
 
@@ -237,44 +237,44 @@ export function PageScannerModal({ palette, isDark }) {
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-center">
-              <div className={`p-3 rounded-xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-stone-200'}`}>
-                <span className={`block text-[10px] font-bold uppercase ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+            <div className="grid grid-cols-2 gap-2 text-center">
+              <div className={`p-2 rounded-xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-stone-200'}`}>
+                <span className={`block text-[9px] font-bold uppercase ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
                   Page Density
                 </span>
-                <span className="font-mono text-2xl font-bold block mt-0.5" style={{ color: primaryColor }}>
+                <span className="font-mono text-xl font-bold block mt-0.5" style={{ color: primaryColor }}>
                   {estimatedWordsPerPage}
                 </span>
-                <span className={`text-[10px] ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+                <span className={`text-[9px] ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
                   words / page
                 </span>
               </div>
 
-              <div className={`p-3 rounded-xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-stone-200'}`}>
-                <span className={`block text-[10px] font-bold uppercase ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
-                  {totalPages > 0 ? `Total Book Words (${totalPages}p)` : 'Total Book Words'}
+              <div className={`p-2 rounded-xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-stone-200'}`}>
+                <span className={`block text-[9px] font-bold uppercase ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+                  {totalPages > 0 ? `Total Words (${totalPages}p)` : 'Total Book Words'}
                 </span>
-                <span className="font-mono text-2xl font-bold block mt-0.5" style={{ color: secondaryColor }}>
+                <span className="font-mono text-xl font-bold block mt-0.5" style={{ color: secondaryColor }}>
                   {totalBookWordsEstimate ? totalBookWordsEstimate.toLocaleString() : '—'}
                 </span>
-                <span className={`text-[10px] ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+                <span className={`text-[9px] ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
                   {totalPages > 0 ? 'calculated book length' : 'set pages to see total'}
                 </span>
               </div>
             </div>
 
             {/* Formula explanation */}
-            <div className={`text-[11px] font-mono text-center pt-1 ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+            <div className={`text-[10px] font-mono text-center pt-0.5 ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
               ({w1} + {w2} + {w3}) ÷ 3 = {avgWordsPerLine.toFixed(1)} w/line × {numLines} lines = <strong>{estimatedWordsPerPage} words/page</strong>
             </div>
           </div>
 
           {/* Quick Preset Shortcuts */}
-          <div className="space-y-2">
-            <span className={`block text-[11px] font-bold uppercase tracking-wider ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+          <div className="space-y-1.5">
+            <span className={`block text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
               Or choose standard book preset:
             </span>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-1.5">
               {PRESETS.map((p) => {
                 const isSelected = estimatedWordsPerPage === p.words;
                 return (
@@ -282,7 +282,7 @@ export function PageScannerModal({ palette, isDark }) {
                     key={p.label}
                     type="button"
                     onClick={() => handleApplyPreset(p)}
-                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    className={`p-2 rounded-xl border text-left transition-all cursor-pointer ${
                       isSelected
                         ? isDark
                           ? 'bg-amber-950/30 border-amber-500/50 shadow-xs'
@@ -293,12 +293,12 @@ export function PageScannerModal({ palette, isDark }) {
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold block">{p.label}</span>
-                      <span className="text-[11px] font-mono font-bold" style={{ color: primaryColor }}>
+                      <span className="text-[11px] font-bold block">{p.label}</span>
+                      <span className="text-[10px] font-mono font-bold" style={{ color: primaryColor }}>
                         {p.words} w/p
                       </span>
                     </div>
-                    <span className={`text-[10px] block mt-0.5 ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+                    <span className={`text-[9px] block mt-0.5 ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
                       {p.sub}
                     </span>
                   </button>

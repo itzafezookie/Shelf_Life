@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Search, Book, Loader2, ArrowLeft, PlayCircle, Sparkles, Check, Globe, Camera, Sliders } from 'lucide-react';
+import { X, Search, Book, Loader2, ArrowLeft, PlayCircle, Sparkles, Check, Globe, Calculator, Sliders } from 'lucide-react';
 import { useUIStore } from '../../stores/useUIStore';
 import { bookService } from '../../services/bookService';
 import confetti from 'canvas-confetti';
@@ -430,8 +430,8 @@ export function AddBookModal({ palette, isDark }) {
                         : 'bg-white hover:bg-stone-50 text-stone-800 border-[#eae3d8] shadow-2xs'
                     }`}
                   >
-                    <Camera className="w-3.5 h-3.5" style={{ color: primaryColor }} />
-                    <span>Scan Page</span>
+                    <Calculator className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+                    <span>Density Calculator</span>
                   </button>
                 </div>
 
