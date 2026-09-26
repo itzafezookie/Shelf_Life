@@ -10,7 +10,6 @@ import {
   Gauge,
   Bookmark,
   Calendar,
-  Quote,
   Sparkles
 } from 'lucide-react';
 import { useUIStore } from '../../stores/useUIStore';
@@ -96,9 +95,6 @@ export function BookCompletedCardModal({ books, sessions = [], baselineWPM = 250
   const bookPacePPM = analyticsEngine.calculateAveragePacePPM(bookSessions, baselineWPM, bookDensity);
   const bookWPM = analyticsEngine.calculateWPM(bookPacePPM, bookDensity);
 
-  // Favorite Quote resolution (either explicitly marked favorite, or most recent quote)
-  const quotesList = Array.isArray(book.quotes) ? book.quotes : [];
-  const favoriteQuote = quotesList.find((q) => q.is_favorite) || (quotesList.length > 0 ? quotesList[quotesList.length - 1] : null);
 
   const completedDateFormatted = book.completed_date
     ? new Date(book.completed_date).toLocaleDateString(undefined, {
@@ -240,36 +236,8 @@ export function BookCompletedCardModal({ books, sessions = [], baselineWPM = 250
       ctx.fillText(`${starText}  (${book.rating}.0 / 5)`, width / 2, 785);
     }
 
-    // 7. Favorite Quote Card (if exists)
-    let statsY = 840;
-    if (favoriteQuote) {
-      const quoteBoxWidth = width - 160;
-      const quoteBoxX = 80;
-      const quoteBoxY = 820;
-      const quoteBoxHeight = 150;
-
-      ctx.fillStyle = isCardDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)';
-      roundRect(ctx, quoteBoxX, quoteBoxY, quoteBoxWidth, quoteBoxHeight, 20);
-      ctx.fill();
-
-      // Quote accent line
-      ctx.fillStyle = primaryColor;
-      roundRect(ctx, quoteBoxX, quoteBoxY, 8, quoteBoxHeight, 4);
-      ctx.fill();
-
-      ctx.fillStyle = isCardDark ? '#e7e5e4' : '#292524';
-      ctx.font = 'italic 25px Georgia, serif';
-      ctx.textAlign = 'left';
-      wrapText(ctx, `“${favoriteQuote.text}”`, quoteBoxX + 35, quoteBoxY + 45, quoteBoxWidth - 60, 34);
-
-      if (favoriteQuote.page) {
-        ctx.fillStyle = primaryColor;
-        ctx.font = 'bold 20px monospace';
-        ctx.fillText(`— Page ${favoriteQuote.page}`, quoteBoxX + 35, quoteBoxY + quoteBoxHeight - 20);
-      }
-
-      statsY = 1010;
-    }
+    // 7. Stats Badges Row (Time, Pages, Pace, Sessions)
+    const statsY = 880;
 
     // 8. Stats Badges Row (Time, Pages, Pace, Sessions)
     const stats = [
@@ -539,27 +507,7 @@ export function BookCompletedCardModal({ books, sessions = [], baselineWPM = 250
               </div>
             </div>
 
-            {/* Featured Quote (if exists) */}
-            {favoriteQuote && (
-              <div
-                className={`p-3 rounded-2xl border text-xs mb-4 relative ${
-                  isCardDark
-                    ? 'bg-white/5 border-white/10 text-stone-200'
-                    : 'bg-white border-[#eae3d8] text-stone-800'
-                }`}
-                style={{ borderLeftColor: primaryColor, borderLeftWidth: '4px' }}
-              >
-                <Quote className="w-3.5 h-3.5 mb-1 opacity-70" style={{ color: primaryColor }} />
-                <p className="font-serif italic leading-relaxed line-clamp-3 select-text">
-                  “{favoriteQuote.text}”
-                </p>
-                {favoriteQuote.page && (
-                  <span className={`block text-[10px] font-mono mt-1 ${isCardDark ? 'text-stone-400' : 'text-stone-500'}`}>
-                    — Page {favoriteQuote.page}
-                  </span>
-                )}
-              </div>
-            )}
+
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 gap-2 text-center text-xs">

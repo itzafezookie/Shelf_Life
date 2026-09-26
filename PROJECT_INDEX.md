@@ -2,7 +2,7 @@
 
 > **AUTO-GENERATED SYSTEM INDEX** — DO NOT EDIT MANUALLY.
 > Regenerate with `npm run index` or automatically via `npm run build`.
-> Last Index Run: 2026-09-26T17:09:25.828Z
+> Last Index Run: 2026-09-26T17:27:30.873Z
 
 ## 🎯 1. System Sources of Truth (Singletons, Engines & Stores)
 
@@ -65,7 +65,7 @@ graph TD
 
 ## 📦 3. Module Catalog & Architectural Role
 
-Total workspace files tracked: **80** | Total LOC: **57988**
+Total workspace files tracked: **79** | Total LOC: **56424**
 
 | File | LOC | Type / Architectural Role | Exports & Public Symbols | Storage / APIs |
 | :--- | :--- | :--- | :--- | :--- |
@@ -80,7 +80,7 @@ Total workspace files tracked: **80** | Total LOC: **57988**
 | [`index.html`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/index.html) | 22 | SPA Host Document | — | — |
 | [`Logo_Header.svg`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/Logo_Header.svg) | 120 | Static Asset | — | — |
 | [`manifest.json`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/manifest.json) | 29 | Static Asset | — | — |
-| [`package.json`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/package.json) | 42 | Package Manifest | — | — |
+| [`package.json`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/package.json) | 41 | Package Manifest | — | — |
 | [`public/default-cover-large.svg`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/public/default-cover-large.svg) | 4 | Static Asset | — | — |
 | [`public/default-cover-small.svg`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/public/default-cover-small.svg) | 4 | Static Asset | — | — |
 | [`public/default-cover.svg`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/public/default-cover.svg) | 4 | Static Asset | — | — |
@@ -89,12 +89,12 @@ Total workspace files tracked: **80** | Total LOC: **57988**
 | [`public/Logo_Header.svg`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/public/Logo_Header.svg) | 120 | Static Asset | — | — |
 | [`README.md`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/README.md) | 143 | Static Asset | — | — |
 | [`scripts/generate-index.js`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/scripts/generate-index.js) | 261 | Build / Indexing Automation | `walkDir()`, `analyzeFile()`, `generateMarkdownIndex()` | Open Library REST API |
-| [`src/App.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/App.jsx) | 244 | Root Application Shell | `App()`, `loadPalette()`, `initApp()` | — |
+| [`src/App.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/App.jsx) | 242 | Root Application Shell | `App()`, `loadPalette()`, `initApp()` | — |
 | [`src/components/analytics/BookCalendarHeatmap.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/analytics/BookCalendarHeatmap.jsx) | 280 | Dumb UI Presentation | `BookCalendarHeatmap()`, `getCellStyles()` | — |
 | [`src/components/analytics/GenreBreakdown.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/analytics/GenreBreakdown.jsx) | 101 | Dumb UI Presentation | `GenreBreakdown()` | — |
 | [`src/components/analytics/ReadingTrends.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/analytics/ReadingTrends.jsx) | 153 | Dumb UI Presentation | `ReadingTrends()` | — |
 | [`src/components/analytics/StatsOverview.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/analytics/StatsOverview.jsx) | 99 | Dumb UI Presentation | `StatsOverview()` | — |
-| [`src/components/current/CurrentBookHero.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/current/CurrentBookHero.jsx) | 346 | Dumb UI Presentation | `CurrentBookHero()`, `handleSavePage()` | — |
+| [`src/components/current/CurrentBookHero.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/current/CurrentBookHero.jsx) | 333 | Dumb UI Presentation | `CurrentBookHero()`, `handleSavePage()` | — |
 | [`src/components/current/PaceStatsCard.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/current/PaceStatsCard.jsx) | 227 | Dumb UI Presentation | `PaceStatsCard()` | — |
 | [`src/components/current/ReadingCockpit.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/current/ReadingCockpit.jsx) | 237 | Dumb UI Presentation | `ReadingCockpit()`, `handleStart()`, `handlePause()`, `handleResume()` | — |
 | [`src/components/current/SessionControls.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/current/SessionControls.jsx) | 186 | Dumb UI Presentation | `SessionControls()`, `handleStart()`, `handlePause()`, `handleResume()` | — |
@@ -108,16 +108,15 @@ Total workspace files tracked: **80** | Total LOC: **57988**
 | [`src/components/layout/ShelfLifeLogo.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/layout/ShelfLifeLogo.jsx) | 136 | Dumb UI Presentation | `ShelfLifeLogo()` | — |
 | [`src/components/library/AddBookModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/AddBookModal.jsx) | 617 | Dumb UI Presentation | `AddBookModal()`, `handleSearch()`, `handleSelectBook()`, `handleStartManual()` | Open Library REST API |
 | [`src/components/library/BookCard.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/BookCard.jsx) | 188 | Dumb UI Presentation | `BookCard()`, `handleSetFocus()`, `getStatusBadge()` | — |
-| [`src/components/library/BookDetailModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/BookDetailModal.jsx) | 1105 | Dumb UI Presentation | `BookDetailModal()`, `formatDate()`, `formatSessionTime()`, `handleRatingChange()` | — |
+| [`src/components/library/BookDetailModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/BookDetailModal.jsx) | 928 | Dumb UI Presentation | `BookDetailModal()`, `formatDate()`, `formatSessionTime()`, `handleRatingChange()` | — |
 | [`src/components/library/BookList.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/BookList.jsx) | 209 | Dumb UI Presentation | `BookList()` | — |
 | [`src/components/mobile/MobileSheetPanel.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/mobile/MobileSheetPanel.jsx) | 397 | Dumb UI Presentation | `MobileSheetPanel()`, `handleStart()`, `handlePause()`, `handleResume()` | — |
-| [`src/components/modals/BookCompletedCardModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/BookCompletedCardModal.jsx) | 686 | Dumb UI Presentation | `BookCompletedCardModal()`, `loadPalette()`, `generateCanvasImage()`, `roundRect()` | — |
+| [`src/components/modals/BookCompletedCardModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/BookCompletedCardModal.jsx) | 634 | Dumb UI Presentation | `BookCompletedCardModal()`, `loadPalette()`, `generateCanvasImage()`, `roundRect()` | — |
 | [`src/components/modals/CustomColorPicker.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/CustomColorPicker.jsx) | 260 | Dumb UI Presentation | `hexToHsl()`, `hslToHex()`, `f()`, `CustomColorPicker()` | — |
 | [`src/components/modals/DataManagementModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/DataManagementModal.jsx) | 175 | Dumb UI Presentation | `DataManagementModal()`, `handleExport()`, `handleImportFile()` | — |
 | [`src/components/modals/FinishSessionModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/FinishSessionModal.jsx) | 190 | Dumb UI Presentation | `FinishSessionModal()`, `handleSubmit()` | — |
-| [`src/components/modals/PageScannerModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/PageScannerModal.jsx) | 707 | Dumb UI Presentation | `PageScannerModal()`, `handleFileChange()`, `processImage()`, `handleRemoveSample()` | — |
+| [`src/components/modals/PageScannerModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/PageScannerModal.jsx) | 342 | Dumb UI Presentation | `PageScannerModal()`, `handleApplyPreset()`, `handleApplyEstimate()` | — |
 | [`src/components/modals/PaletteCustomizerModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/PaletteCustomizerModal.jsx) | 353 | Dumb UI Presentation | `PaletteCustomizerModal()`, `loadColors()`, `handleSelectSwatch()`, `handleResetToAuto()` | — |
-| [`src/components/modals/QuoteScannerModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/QuoteScannerModal.jsx) | 949 | Dumb UI Presentation | `QuoteScannerModal()`, `handleFileChange()`, `executeOcrOnPassage()`, `handleWordClick()` | — |
 | [`src/components/modals/ReadingSpeedTestModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/ReadingSpeedTestModal.jsx) | 602 | Dumb UI Presentation | `ReadingSpeedTestModal()`, `loadFreshExcerpt()`, `handleStartReading()`, `handleFinishReading()` | — |
 | [`src/components/modals/SpeedOverrideModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/SpeedOverrideModal.jsx) | 147 | Dumb UI Presentation | `SpeedOverrideModal()`, `handleSave()` | — |
 | [`src/components/scene/FullPageCanvas.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/scene/FullPageCanvas.jsx) | 66 | Dumb UI Presentation | `FullPageCanvas()` | — |
@@ -147,24 +146,19 @@ Total workspace files tracked: **80** | Total LOC: **57988**
 | [`src/services/speedTestService.js`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/services/speedTestService.js) | 231 | Core Engine / Service | — | — |
 | [`src/services/timerService.js`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/services/timerService.js) | 150 | Core Engine / Service | class `TimerService` | — |
 | [`src/stores/useSessionStore.js`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/stores/useSessionStore.js) | 31 | Headless Reactive Store | — | — |
-| [`src/stores/useUIStore.js`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/stores/useUIStore.js) | 70 | Headless Reactive Store | — | — |
+| [`src/stores/useUIStore.js`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/stores/useUIStore.js) | 65 | Headless Reactive Store | — | — |
 | [`vite.config.mjs`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/vite.config.mjs) | 66 | Static Asset | — | — |
 
 ## 🛡️ 4. Architecture Guardrails Compliance Audit
 
 ### ⚠️ 400-LOC Ceiling Violations
 - [`src/components/library/AddBookModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/AddBookModal.jsx) (617 lines) — *Must be decomposed into smaller sub-components.*
-- [`src/components/library/BookDetailModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/BookDetailModal.jsx) (1105 lines) — *Must be decomposed into smaller sub-components.*
-- [`src/components/modals/BookCompletedCardModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/BookCompletedCardModal.jsx) (686 lines) — *Must be decomposed into smaller sub-components.*
-- [`src/components/modals/PageScannerModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/PageScannerModal.jsx) (707 lines) — *Must be decomposed into smaller sub-components.*
-- [`src/components/modals/QuoteScannerModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/QuoteScannerModal.jsx) (949 lines) — *Must be decomposed into smaller sub-components.*
+- [`src/components/library/BookDetailModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/BookDetailModal.jsx) (928 lines) — *Must be decomposed into smaller sub-components.*
+- [`src/components/modals/BookCompletedCardModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/BookCompletedCardModal.jsx) (634 lines) — *Must be decomposed into smaller sub-components.*
 - [`src/components/modals/ReadingSpeedTestModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/ReadingSpeedTestModal.jsx) (602 lines) — *Must be decomposed into smaller sub-components.*
 
 ### 🚫 Component Timer Violations (Zero Component Timers Mandate)
-- [`src/components/library/BookDetailModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/library/BookDetailModal.jsx) — *Contains setInterval/setTimeout in presentation component! Move clock to timerService.*
 - [`src/components/modals/BookCompletedCardModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/BookCompletedCardModal.jsx) — *Contains setInterval/setTimeout in presentation component! Move clock to timerService.*
 - [`src/components/modals/FinishSessionModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/FinishSessionModal.jsx) — *Contains setInterval/setTimeout in presentation component! Move clock to timerService.*
-- [`src/components/modals/PageScannerModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/PageScannerModal.jsx) — *Contains setInterval/setTimeout in presentation component! Move clock to timerService.*
-- [`src/components/modals/QuoteScannerModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/QuoteScannerModal.jsx) — *Contains setInterval/setTimeout in presentation component! Move clock to timerService.*
 - [`src/components/modals/ReadingSpeedTestModal.jsx`](file:///D:/Users/bfezu/Coding Projects/Shelf_Life/src/components/modals/ReadingSpeedTestModal.jsx) — *Contains setInterval/setTimeout in presentation component! Move clock to timerService.*
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit3, Info, Check, X, Quote } from 'lucide-react';
+import { Edit3, Info, Check, X } from 'lucide-react';
 import { bookService } from '../../services/bookService';
 import { useUIStore } from '../../stores/useUIStore';
 
@@ -7,7 +7,7 @@ import { useUIStore } from '../../stores/useUIStore';
  * Condensed Hero Container with Book-Driven Palette Theming
  */
 export function CurrentBookHero({ book, etaText, palette }) {
-  const { openBookDetail, setAddBookOpen, openPaletteCustomizer, openQuoteScanner } = useUIStore();
+  const { openBookDetail, setAddBookOpen, openPaletteCustomizer } = useUIStore();
   const [isEditingPage, setIsEditingPage] = useState(false);
   const [pageInput, setPageInput] = useState(book?.current_page || 0);
 
@@ -301,19 +301,6 @@ export function CurrentBookHero({ book, etaText, palette }) {
                 >
                   <Edit3 className="w-3 h-3" style={{ color: primaryColor }} />
                   <span>Update Page</span>
-                </button>
-
-                <button
-                  onClick={() => openQuoteScanner(book)}
-                  className={`py-1.5 px-3 text-xs font-semibold cursor-pointer rounded-xl inline-flex items-center gap-1.5 transition-all ${
-                    isDark
-                      ? 'bg-[#282532] hover:bg-[#343040] text-stone-200'
-                      : 'btn-cozy btn-cozy-secondary'
-                  }`}
-                  title="Snap a memorable quote from this book"
-                >
-                  <Quote className="w-3 h-3" style={{ color: primaryColor }} />
-                  <span>Snap Quote</span>
                 </button>
 
                 <button
