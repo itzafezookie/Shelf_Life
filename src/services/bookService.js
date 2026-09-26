@@ -31,6 +31,7 @@ export const bookService = {
       rating: bookData.rating ? Number(bookData.rating) : null,
       notes: bookData.notes || '',
       theme_mode: bookData.theme_mode || 'auto',
+      words_per_page: Number(bookData.words_per_page) || 250,
       completed_date: status === 'completed' ? new Date().toISOString() : null,
       created_at: new Date().toISOString()
     };

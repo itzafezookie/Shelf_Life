@@ -4,7 +4,7 @@ import { db } from './db/db';
 import { runLegacyMigrationIfNeeded } from './services/migrationService';
 import { useUIStore } from './stores/useUIStore';
 import { analyticsEngine } from './services/analyticsEngine';
-import { extractPaletteFromImage } from './services/colorExtractor';
+import { extractPaletteFromImage, getTextOnColor } from './services/colorExtractor';
 
 // Layout
 import { Header } from './components/layout/Header';
@@ -25,6 +25,9 @@ import { BookDetailModal } from './components/library/BookDetailModal';
 import { FinishSessionModal } from './components/modals/FinishSessionModal';
 import { SpeedOverrideModal } from './components/modals/SpeedOverrideModal';
 import { DataManagementModal } from './components/modals/DataManagementModal';
+import { PageScannerModal } from './components/modals/PageScannerModal';
+import { PaletteCustomizerModal } from './components/modals/PaletteCustomizerModal';
+import { ReadingSpeedTestModal } from './components/modals/ReadingSpeedTestModal';
 
 export function App() {
   const { activeTab } = useUIStore();
@@ -48,7 +51,7 @@ export function App() {
     return books.find((b) => b.status === 'reading') || null;
   }, [books, currentFocusBookId]);
 
-  // Extract top 3 cover colors whenever the active book or its theme_mode changes
+  // Extract top 3 cover colors whenever the active book, theme_mode, or custom_palette changes
   useEffect(() => {
     let isCancelled = false;
     async function loadPalette() {
@@ -63,7 +66,33 @@ export function App() {
           currentBook.theme_mode || 'auto'
         );
         if (!isCancelled) {
-          setBookPalette(palette);
+          if (currentBook.custom_palette) {
+            const cp = currentBook.custom_palette;
+            const primary = cp.primary || palette.primary;
+            const secondary = cp.secondary || palette.secondary;
+            const tertiary = cp.tertiary || palette.tertiary;
+
+            const clean = (primary || '#0284c7').replace('#', '');
+            const r1 = parseInt(clean.substring(0, 2), 16) || 2;
+            const g1 = parseInt(clean.substring(2, 4), 16) || 132;
+            const b1 = parseInt(clean.substring(4, 6), 16) || 199;
+
+            // Calculate text contrast for primary button
+            const textOnPrimary = getTextOnColor(primary);
+
+            setBookPalette({
+              ...palette,
+              primary,
+              secondary,
+              tertiary,
+              topColors: [primary, secondary, tertiary],
+              textOnPrimary,
+              tint: `rgba(${r1}, ${g1}, ${b1}, ${palette?.isDark ? 0.12 : 0.05})`,
+              tintMedium: `rgba(${r1}, ${g1}, ${b1}, ${palette?.isDark ? 0.22 : 0.12})`
+            });
+          } else {
+            setBookPalette(palette);
+          }
         }
       } catch (e) {
         console.warn('[App] Palette extraction error:', e);
@@ -73,12 +102,19 @@ export function App() {
     return () => {
       isCancelled = true;
     };
-  }, [currentBook?.cover_url, currentBook?.title, currentBook?.theme_mode]);
+  }, [
+    currentBook?.cover_url,
+    currentBook?.title,
+    currentBook?.theme_mode,
+    currentBook?.custom_palette?.primary,
+    currentBook?.custom_palette?.secondary,
+    currentBook?.custom_palette?.tertiary
+  ]);
 
   // ETA text for active book
   const etaText = useMemo(() => {
     if (!currentBook) return '';
-    const pacePPM = analyticsEngine.calculateAveragePacePPM(sessions, baselineWPM);
+    const pacePPM = analyticsEngine.calculateAveragePacePPM(sessions, baselineWPM, currentBook.words_per_page);
     const eta = analyticsEngine.calculateBookETA(currentBook, pacePPM);
     return eta.formattedDuration;
   }, [currentBook, sessions, baselineWPM]);
@@ -186,6 +222,9 @@ export function App() {
         isDark={isDarkApp}
       />
       <DataManagementModal palette={bookPalette} isDark={isDarkApp} />
+      <PageScannerModal palette={bookPalette} isDark={isDarkApp} />
+      <PaletteCustomizerModal palette={bookPalette} isDark={isDarkApp} />
+      <ReadingSpeedTestModal palette={bookPalette} isDark={isDarkApp} />
     </div>
   );
 }

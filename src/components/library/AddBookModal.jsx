@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { X, Search, Book, Loader2, ArrowLeft, PlayCircle, Sparkles, Check, Globe } from 'lucide-react';
+import { X, Search, Book, Loader2, ArrowLeft, PlayCircle, Sparkles, Check, Globe, Camera, Sliders } from 'lucide-react';
 import { useUIStore } from '../../stores/useUIStore';
 import { bookService } from '../../services/bookService';
 import confetti from 'canvas-confetti';
 
 export function AddBookModal({ palette, isDark }) {
-  const { isAddBookOpen, setAddBookOpen, setActiveTab } = useUIStore();
+  const { isAddBookOpen, setAddBookOpen, setActiveTab, openPageScanner } = useUIStore();
   const [step, setStep] = useState('search'); // 'search' | 'configure'
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -21,6 +21,7 @@ export function AddBookModal({ palette, isDark }) {
     author: '',
     pages_total: 300,
     current_page: 0,
+    words_per_page: 250,
     genres: '',
     due_date: '',
     cover_url: '',
@@ -54,6 +55,7 @@ export function AddBookModal({ palette, isDark }) {
       author: bookResult.author || '',
       pages_total: bookResult.pages_total || 300,
       current_page: 0,
+      words_per_page: 250,
       genres: Array.isArray(bookResult.genres) ? bookResult.genres.join(', ') : 'Fiction',
       due_date: '',
       cover_url: bookResult.cover_url || '',
@@ -68,6 +70,7 @@ export function AddBookModal({ palette, isDark }) {
       author: '',
       pages_total: 300,
       current_page: 0,
+      words_per_page: 250,
       genres: 'Fiction',
       due_date: '',
       cover_url: '',
@@ -89,6 +92,7 @@ export function AddBookModal({ palette, isDark }) {
       author: configForm.author.trim() || 'Unknown Author',
       pages_total: parseInt(configForm.pages_total, 10) || 0,
       current_page: parseInt(configForm.current_page, 10) || 0,
+      words_per_page: parseInt(configForm.words_per_page, 10) || 250,
       genres: parsedGenres,
       due_date: configForm.due_date || '',
       cover_url: configForm.cover_url.trim() || '',
@@ -399,6 +403,55 @@ export function AddBookModal({ palette, isDark }) {
                     onChange={(e) => setConfigForm({ ...configForm, current_page: e.target.value })}
                     className={`${inputClass} font-mono font-bold`}
                   />
+                </div>
+              </div>
+
+              {/* Typography Density & OCR Calibration */}
+              <div
+                className={`p-3.5 rounded-xl border space-y-2 ${
+                  isDark ? 'bg-[#1c1a24] border-white/10' : 'bg-[#fbf9f6] border-[#eae3d8]'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Sliders className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+                    <span className="text-xs font-semibold">Density Calibration</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      openPageScanner({ ...configForm }, (density) =>
+                        setConfigForm((prev) => ({ ...prev, words_per_page: density }))
+                      )
+                    }
+                    className={`px-2.5 py-1 text-xs font-bold rounded-lg border flex items-center gap-1.5 transition-all cursor-pointer ${
+                      isDark
+                        ? 'bg-[#201e29] hover:bg-[#2c2937] text-white border-white/15'
+                        : 'bg-white hover:bg-stone-50 text-stone-800 border-[#eae3d8] shadow-2xs'
+                    }`}
+                  >
+                    <Camera className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+                    <span>Scan Page</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-3 pt-1">
+                  <div className="w-28">
+                    <input
+                      type="number"
+                      min="50"
+                      max="1000"
+                      value={configForm.words_per_page}
+                      onChange={(e) => setConfigForm({ ...configForm, words_per_page: e.target.value })}
+                      className={`${inputClass} font-mono text-center font-bold`}
+                    />
+                  </div>
+                  <div className="text-xs">
+                    <span className="font-medium text-stone-400">words / page</span>
+                    <span className={`block text-[11px] ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+                      ≈ {Math.round((parseInt(configForm.words_per_page, 10) || 250) * (parseInt(configForm.pages_total, 10) || 0)).toLocaleString()} total words
+                    </span>
+                  </div>
                 </div>
               </div>
 

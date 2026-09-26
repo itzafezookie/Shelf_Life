@@ -7,6 +7,18 @@
 
 const paletteCache = new Map();
 
+export function getTextOnColor(hex) {
+  if (!hex || typeof hex !== 'string') return 'rgba(255, 255, 255, 0.7)';
+  const clean = hex.replace('#', '');
+  const r = parseInt(clean.substring(0, 2), 16) || 0;
+  const g = parseInt(clean.substring(2, 4), 16) || 0;
+  const b = parseInt(clean.substring(4, 6), 16) || 0;
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  // If brightness is high (like yellow, cream, light cyan), use dark text at 70% opacity
+  // Otherwise use light text at 70% opacity
+  return luminance > 0.55 ? 'rgba(0, 0, 0, 0.70)' : 'rgba(255, 255, 255, 0.70)';
+}
+
 export async function extractPaletteFromImage(imageUrl, bookTitle = '', themePreference = 'auto') {
   const cacheKey = `${imageUrl || 'no-img'}_${bookTitle || 'no-title'}_${themePreference}`;
   if (paletteCache.has(cacheKey)) return paletteCache.get(cacheKey);
@@ -166,14 +178,43 @@ export async function extractPaletteFromImage(imageUrl, bookTitle = '', themePre
         const tintMedium = `rgba(${r1}, ${g1}, ${b1}, ${isDark ? 0.22 : 0.12})`;
 
         // Perceived brightness of primary for text on primary button
-        const luminance = (0.299 * r1 + 0.587 * g1 + 0.114 * b1) / 255;
-        const textOnPrimary = luminance > 0.65 ? '#141218' : '#ffffff';
+        const textOnPrimary = getTextOnColor(primary);
+
+        // Extract genuinely distinct candidate colors from the image
+        const distinctCandidates = [];
+        const candidateSource = vibrantMap.size >= 3 ? vibrantMap : allColorsMap;
+
+        for (const [key] of Array.from(candidateSource.entries()).sort((a, b) => b[1] - a[1])) {
+          const [cr, cg, cb] = key.split(',').map(Number);
+          const isDistinct = distinctCandidates.every(([dr, dg, db]) => {
+            return Math.sqrt(Math.pow(cr - dr, 2) + Math.pow(cg - dg, 2) + Math.pow(cb - db, 2)) > 32;
+          });
+          if (isDistinct) {
+            distinctCandidates.push([cr, cg, cb]);
+          }
+          if (distinctCandidates.length >= 8) break;
+        }
+
+        // Also add top 2 neutral or background tones if distinct
+        for (const [key] of Array.from(allColorsMap.entries()).sort((a, b) => b[1] - a[1])) {
+          if (distinctCandidates.length >= 10) break;
+          const [cr, cg, cb] = key.split(',').map(Number);
+          const isDistinct = distinctCandidates.every(([dr, dg, db]) => {
+            return Math.sqrt(Math.pow(cr - dr, 2) + Math.pow(cg - dg, 2) + Math.pow(cb - db, 2)) > 32;
+          });
+          if (isDistinct) {
+            distinctCandidates.push([cr, cg, cb]);
+          }
+        }
+
+        const candidateColors = distinctCandidates.map(([cr, cg, cb]) => rgbToHex(cr, cg, cb));
 
         const result = {
           primary,
           secondary,
           tertiary,
           topColors: [primary, secondary, tertiary],
+          candidates: candidateColors,
           isDark,
           themeMode: isDark ? 'dark' : 'light',
           bgApp: isDark ? '#0e0d12' : '#fbf8f3',
@@ -241,6 +282,7 @@ function generateHarmoniousPalette(seed = '', themePreference = 'auto') {
   return {
     ...selected,
     topColors: [selected.primary, selected.secondary, selected.tertiary],
+    candidates: [selected.primary, selected.secondary, selected.tertiary],
     isDark,
     themeMode: isDark ? 'dark' : 'light',
     bgApp: isDark ? '#0e0d12' : '#fbf8f3',
@@ -254,6 +296,6 @@ function generateHarmoniousPalette(seed = '', themePreference = 'auto') {
     ringTrack: isDark ? '#26242e' : '#ede7dd',
     tint: isDark ? 'rgba(250, 204, 21, 0.12)' : 'rgba(2, 132, 199, 0.05)',
     tintMedium: isDark ? 'rgba(250, 204, 21, 0.22)' : 'rgba(2, 132, 199, 0.12)',
-    textOnPrimary: '#141218'
+    textOnPrimary: getTextOnColor(selected.primary)
   };
 }

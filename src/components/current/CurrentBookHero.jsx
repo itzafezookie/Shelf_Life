@@ -7,7 +7,7 @@ import { useUIStore } from '../../stores/useUIStore';
  * Condensed Hero Container with Book-Driven Palette Theming
  */
 export function CurrentBookHero({ book, etaText, palette }) {
-  const { openBookDetail, setAddBookOpen } = useUIStore();
+  const { openBookDetail, setAddBookOpen, openPaletteCustomizer } = useUIStore();
   const [isEditingPage, setIsEditingPage] = useState(false);
   const [pageInput, setPageInput] = useState(book?.current_page || 0);
 
@@ -97,7 +97,7 @@ export function CurrentBookHero({ book, etaText, palette }) {
       {/* Condensed Horizontal Layout: Cover to the Left, Text to the Right */}
       <div className="flex items-center gap-4 sm:gap-5 pt-0.5">
         {/* Left: Clean, Punchy Book Cover */}
-        <div className="shrink-0 my-0.5">
+        <div className="shrink-0 my-0.5 flex flex-col items-center">
           <div
             className="book-cover-punchy w-22 h-32 sm:w-26 sm:h-38 bg-[#ede7dd] transition-all duration-300"
             style={
@@ -120,11 +120,33 @@ export function CurrentBookHero({ book, etaText, palette }) {
               />
             </div>
           </div>
+
+          {/* Palette Pill placed directly beneath the cover art */}
+          {palette?.topColors && palette.topColors.length >= 3 && (
+            <button
+              type="button"
+              onClick={() => openPaletteCustomizer(book)}
+              className={`mt-2 flex items-center justify-center gap-1.5 px-2 py-0.5 rounded-full border transition-all hover:scale-105 cursor-pointer shadow-2xs ${
+                isDark
+                  ? 'bg-[#201e28] border-white/10 hover:border-white/20'
+                  : 'bg-[#fbf9f6] border-[#ede7dd] hover:border-stone-300'
+              }`}
+              title="Click to customize book color palette"
+            >
+              {palette.topColors.slice(0, 3).map((col, idx) => (
+                <span
+                  key={idx}
+                  className="w-2.5 h-2.5 rounded-full border border-black/20 shadow-2xs"
+                  style={{ backgroundColor: col }}
+                />
+              ))}
+            </button>
+          )}
         </div>
 
         {/* Right: Book Details & Circular Progress */}
         <div className="flex-1 min-w-0 pr-4 sm:pr-2">
-          {/* Dynamic Focus Badge & Cover Palette Indicator */}
+          {/* Dynamic Focus Badge */}
           <div className="flex items-center gap-2 mb-1">
             <span
               className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border transition-all duration-500"
@@ -144,24 +166,6 @@ export function CurrentBookHero({ book, etaText, palette }) {
               >
                 {etaText} left
               </span>
-            )}
-
-            {/* Top 3 cover palette indicator */}
-            {palette?.topColors && palette.topColors.length >= 3 && (
-              <div
-                className={`ml-auto hidden xs:flex sm:flex items-center gap-1 px-1.5 py-0.5 rounded-full border transition-colors duration-500 ${
-                  isDark ? 'bg-[#201e28] border-white/10' : 'bg-[#fbf9f6] border-[#ede7dd]'
-                }`}
-                title="Top 3 colors extracted from cover"
-              >
-                {palette.topColors.slice(0, 3).map((col, idx) => (
-                  <span
-                    key={idx}
-                    className="w-2.5 h-2.5 rounded-full border border-black/15 transition-transform hover:scale-125 shadow-2xs"
-                    style={{ backgroundColor: col }}
-                  />
-                ))}
-              </div>
             )}
           </div>
 

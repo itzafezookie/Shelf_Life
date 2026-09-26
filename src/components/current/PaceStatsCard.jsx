@@ -1,8 +1,10 @@
 import React from 'react';
-import { AlertCircle, Clock, Gauge, Calendar, Target } from 'lucide-react';
+import { AlertCircle, Clock, Gauge, Calendar, Target, Camera, Sparkles } from 'lucide-react';
 import { analyticsEngine } from '../../services/analyticsEngine';
+import { useUIStore } from '../../stores/useUIStore';
 
 export function PaceStatsCard({ book, sessions, baselineWPM = 250, palette }) {
+  const { openPageScanner, setSpeedOverrideOpen } = useUIStore();
   if (!book) return null;
 
   const isDark = Boolean(palette?.isDark);
@@ -10,8 +12,10 @@ export function PaceStatsCard({ book, sessions, baselineWPM = 250, palette }) {
   const secondaryColor = palette?.secondary || '#ec4899';
   const tertiaryColor = palette?.tertiary || '#06b6d4';
 
-  const pacePPM = analyticsEngine.calculateAveragePacePPM(sessions, baselineWPM);
-  const wpm = analyticsEngine.calculateWPM(pacePPM);
+  const bookDensity = book.words_per_page || 250;
+  const isCalibrated = Boolean(book.words_per_page && book.words_per_page !== 250);
+  const pacePPM = analyticsEngine.calculateAveragePacePPM(sessions, baselineWPM, bookDensity);
+  const wpm = analyticsEngine.calculateWPM(pacePPM, bookDensity);
   const eta = analyticsEngine.calculateBookETA(book, pacePPM);
 
   return (
@@ -52,7 +56,9 @@ export function PaceStatsCard({ book, sessions, baselineWPM = 250, palette }) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {/* Box 1: Pace (Primary Color) */}
         <div
-          className={`p-3.5 text-center rounded-2xl border transition-all duration-500 relative overflow-hidden ${
+          onClick={() => setSpeedOverrideOpen(true)}
+          title="Click to calibrate reading pace or take reading speed test"
+          className={`p-3.5 text-center rounded-2xl border transition-all duration-300 relative overflow-hidden cursor-pointer hover:scale-[1.02] ${
             isDark ? 'bg-[#17161c]' : 'cozy-stat-box'
           }`}
           style={
@@ -177,6 +183,43 @@ export function PaceStatsCard({ book, sessions, baselineWPM = 250, palette }) {
             {eta.dailyTarget ? 'pages / day' : 'Self-paced'}
           </div>
         </div>
+      </div>
+
+      {/* Book Typography & Density Bar */}
+      <div
+        className={`px-3 py-2 rounded-xl border flex items-center justify-between gap-2 text-xs transition-colors ${
+          isDark ? 'bg-[#15141b]/80 border-white/10' : 'bg-[#fbf9f6] border-[#eae3d8]'
+        }`}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={`text-[11px] font-mono truncate ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>
+            Density: <strong className={isDark ? 'text-white' : 'text-stone-900'}>{bookDensity}</strong> words/p
+            {isCalibrated ? (
+              <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-500 border border-amber-500/30">
+                Calibrated
+              </span>
+            ) : (
+              <span className="ml-1.5 text-[10px] text-stone-400 font-sans">(Default)</span>
+            )}
+          </span>
+          <span className="text-stone-400/50 hidden sm:inline">•</span>
+          <span className={`text-[11px] truncate hidden sm:inline ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+            ≈ {eta.estimatedTotalWords ? eta.estimatedTotalWords.toLocaleString() : '—'} words total
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => openPageScanner(book)}
+          className={`shrink-0 px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+            isDark
+              ? 'bg-[#201e29] hover:bg-[#2c2937] text-stone-200 border border-white/10'
+              : 'bg-white hover:bg-stone-50 text-stone-700 border border-[#eae3d8] shadow-2xs'
+          }`}
+        >
+          <Camera className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+          <span>{isCalibrated ? 'Rescan Page' : 'Scan Page'}</span>
+        </button>
       </div>
     </div>
   );

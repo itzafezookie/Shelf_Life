@@ -6,14 +6,16 @@
 export const analyticsEngine = {
   WORDS_PER_PAGE_DEFAULT: 250,
 
-  calculateAveragePacePPM(sessions, fallbackWPM = 250) {
+  calculateAveragePacePPM(sessions, fallbackWPM = 250, wordsPerPage = 250) {
     const validSessions = (sessions || []).filter(
       s => !s.exclude_from_pace && s.duration_seconds > 60 && s.pages_read > 0
     );
 
+    const density = wordsPerPage > 0 ? wordsPerPage : this.WORDS_PER_PAGE_DEFAULT;
+
     if (validSessions.length === 0) {
-      // Return fallback PPM based on WPM (e.g. 250 WPM / 250 words per page = 1.0 PPM)
-      return Number((fallbackWPM / this.WORDS_PER_PAGE_DEFAULT).toFixed(2)) || 1.0;
+      // Return fallback PPM based on WPM and book density
+      return Number((fallbackWPM / density).toFixed(2)) || 1.0;
     }
 
     const totalSeconds = validSessions.reduce((acc, s) => acc + (s.duration_seconds || 0), 0);
@@ -24,22 +26,48 @@ export const analyticsEngine = {
     return Number((totalPages / totalMinutes).toFixed(2));
   },
 
-  calculateWPM(ppm) {
-    return Math.round(ppm * this.WORDS_PER_PAGE_DEFAULT);
+  calculateWPM(ppm, wordsPerPage = 250) {
+    const density = wordsPerPage > 0 ? wordsPerPage : this.WORDS_PER_PAGE_DEFAULT;
+    return Math.round(ppm * density);
   },
 
-  calculatePPMFromWPM(wpm) {
-    return Number((wpm / this.WORDS_PER_PAGE_DEFAULT).toFixed(2));
+  calculatePPMFromWPM(wpm, wordsPerPage = 250) {
+    const density = wordsPerPage > 0 ? wordsPerPage : this.WORDS_PER_PAGE_DEFAULT;
+    return Number((wpm / density).toFixed(2));
   },
 
   calculateBookETA(book, pacePPM) {
+    const wordsPerPage = book?.words_per_page > 0 ? book.words_per_page : this.WORDS_PER_PAGE_DEFAULT;
+    const totalPages = book?.pages_total || 0;
+    const estimatedTotalWords = totalPages * wordsPerPage;
+
     if (!book || !book.pages_total || book.pages_total <= 0) {
-      return { remainingPages: 0, remainingMinutes: 0, formattedDuration: '0m', estimatedFinishDate: null, risk: 'no-due-date' };
+      return {
+        remainingPages: 0,
+        remainingMinutes: 0,
+        formattedDuration: '0m',
+        estimatedFinishDate: null,
+        risk: 'no-due-date',
+        wordsPerPage,
+        estimatedTotalWords,
+        remainingWords: 0
+      };
     }
 
     const remainingPages = Math.max(0, (book.pages_total || 0) - (book.current_page || 0));
+    const remainingWords = remainingPages * wordsPerPage;
+
     if (remainingPages === 0) {
-      return { remainingPages: 0, remainingMinutes: 0, formattedDuration: 'Completed', estimatedFinishDate: null, risk: 'completed' };
+      return {
+        remainingPages: 0,
+        remainingMinutes: 0,
+        formattedDuration: 'Completed',
+        estimatedFinishDate: null,
+        risk: 'completed',
+        wordsPerPage,
+        estimatedTotalWords,
+        remainingWords: 0
+      };
     }
 
     const safePPM = pacePPM > 0 ? pacePPM : 1.0;
@@ -92,7 +120,10 @@ export const analyticsEngine = {
       formattedDuration,
       estimatedFinishDate,
       dailyTarget,
-      risk
+      risk,
+      wordsPerPage,
+      estimatedTotalWords,
+      remainingWords
     };
   },
 

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sliders } from 'lucide-react';
+import { X, Sliders, BookOpen } from 'lucide-react';
 import { useUIStore } from '../../stores/useUIStore';
 import { db } from '../../db/db';
 import { analyticsEngine } from '../../services/analyticsEngine';
 
 export function SpeedOverrideModal({ baselineWPM = 250, onSave, palette, isDark }) {
-  const { isSpeedOverrideOpen, setSpeedOverrideOpen } = useUIStore();
+  const { isSpeedOverrideOpen, setSpeedOverrideOpen, openSpeedTest } = useUIStore();
   const [wpmInput, setWpmInput] = useState(baselineWPM);
 
   const primaryColor = palette?.primary || '#0284c7';
@@ -83,6 +83,36 @@ export function SpeedOverrideModal({ baselineWPM = 250, onSave, palette, isDark 
               <span>≈ {calculatedPPM} pages/min</span>
               <span>(Avg: 200–300 wpm)</span>
             </div>
+          </div>
+
+          {/* Reading Pace Test Launcher */}
+          <div
+            className={`p-3 rounded-xl border flex items-center justify-between gap-2.5 transition-colors ${
+              isDark ? 'bg-white/5 border-white/10' : 'bg-[#f8f5ee] border-[#eae3d8]'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4 shrink-0" style={{ color: primaryColor }} />
+              <div className="text-[11px] leading-tight">
+                <span className="font-semibold block">Not sure of your pace?</span>
+                <span className={isDark ? 'text-stone-400' : 'text-stone-500'}>Test with a fresh sample</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSpeedOverrideOpen(false);
+                openSpeedTest();
+              }}
+              className={`shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${
+                isDark
+                  ? 'bg-[#201e29] hover:bg-[#2c2937] text-white border-white/10'
+                  : 'bg-white hover:bg-stone-50 text-stone-700 border-[#eae3d8] shadow-2xs'
+              }`}
+            >
+              Take Pace Test
+            </button>
           </div>
 
           <div className="flex gap-2 pt-2">

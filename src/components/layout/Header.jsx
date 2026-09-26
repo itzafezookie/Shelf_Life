@@ -4,7 +4,7 @@ import { useUIStore } from '../../stores/useUIStore';
 import { ShelfLifeLogo } from './ShelfLifeLogo';
 
 export function Header({ palette, isDark }) {
-  const { setAddBookOpen, setDataManagementOpen, setSpeedOverrideOpen } = useUIStore();
+  const { setAddBookOpen, setDataManagementOpen, setSpeedOverrideOpen, openSpeedTest } = useUIStore();
 
   const primaryColor = palette?.primary || '#0284c7';
   const secondaryColor = palette?.secondary || '#0284c7';
@@ -32,6 +32,19 @@ export function Header({ palette, isDark }) {
           >
             <Sliders className={`w-3.5 h-3.5 ${isDark ? 'text-stone-400' : 'text-stone-600'}`} />
             <span>Pace</span>
+          </button>
+
+          <button
+            onClick={openSpeedTest}
+            title="Reading Pace Speed Test"
+            className={`py-1.5 px-3 text-xs rounded-xl font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer ${
+              isDark
+                ? 'bg-[#201e28] text-stone-300 hover:bg-[#2c2937] border border-white/10'
+                : 'btn-cozy btn-cozy-secondary'
+            }`}
+          >
+            <BookOpen className={`w-3.5 h-3.5 ${isDark ? 'text-stone-400' : 'text-stone-600'}`} />
+            <span>Speed Test</span>
           </button>
 
           <button
@@ -75,6 +88,17 @@ export function Header({ palette, isDark }) {
 
           {/* Mobile Utility Buttons */}
           <div className="flex sm:hidden items-center gap-1">
+            <button
+              onClick={openSpeedTest}
+              className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                isDark
+                  ? 'text-stone-300 hover:bg-white/10 border border-white/10'
+                  : 'text-stone-600 hover:bg-[#ede7dd] border border-[#eae3d8]'
+              }`}
+              title="Reading Pace Test"
+            >
+              <BookOpen className="w-4 h-4" />
+            </button>
             <button
               onClick={() => setSpeedOverrideOpen(true)}
               className={`p-2 rounded-xl transition-colors cursor-pointer ${

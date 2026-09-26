@@ -23,9 +23,27 @@ export const useUIStore = create((set) => ({
   isSpeedOverrideOpen: false,
   setSpeedOverrideOpen: (open) => set({ isSpeedOverrideOpen: open }),
 
+  // Reading Speed Test Modal
+  isSpeedTestOpen: false,
+  openSpeedTest: () => set({ isSpeedTestOpen: true }),
+  closeSpeedTest: () => set({ isSpeedTestOpen: false }),
+
   // Data Backup / Restore Modal
   isDataManagementOpen: false,
   setDataManagementOpen: (open) => set({ isDataManagementOpen: open }),
+
+  // Book Density / Page Scanner Modal
+  isPageScannerOpen: false,
+  pageScannerBook: null,
+  pageScannerCallback: null,
+  openPageScanner: (book, callback = null) => set({ pageScannerBook: book, pageScannerCallback: callback, isPageScannerOpen: true }),
+  closePageScanner: () => set({ pageScannerBook: null, pageScannerCallback: null, isPageScannerOpen: false }),
+
+  // Palette Customizer Modal
+  isPaletteCustomizerOpen: false,
+  paletteCustomizerBook: null,
+  openPaletteCustomizer: (book) => set({ paletteCustomizerBook: book, isPaletteCustomizerOpen: true }),
+  closePaletteCustomizer: () => set({ paletteCustomizerBook: null, isPaletteCustomizerOpen: false }),
 
   // Library Filtering & Search
   libraryFilter: 'all', // 'all' | 'reading' | 'to-read' | 'completed'

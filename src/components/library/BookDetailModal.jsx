@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { X, Book, Trash2, PlayCircle, Star, AlertTriangle } from 'lucide-react';
+import { X, Book, Trash2, PlayCircle, Star, AlertTriangle, Camera, Sliders } from 'lucide-react';
 import { useUIStore } from '../../stores/useUIStore';
 import { bookService } from '../../services/bookService';
 import confetti from 'canvas-confetti';
 
 export function BookDetailModal({ books, currentFocusBookId, palette, isDark }) {
-  const { isDetailModalOpen, selectedBookId, closeBookDetail } = useUIStore();
+  const { isDetailModalOpen, selectedBookId, closeBookDetail, openPageScanner } = useUIStore();
   const book = (books || []).find((b) => b.id === selectedBookId);
 
   const [editPage, setEditPage] = useState(0);
   const [editTotal, setEditTotal] = useState(0);
+  const [editWordsPerPage, setEditWordsPerPage] = useState(250);
   const [editDueDate, setEditDueDate] = useState('');
   const [editRating, setEditRating] = useState(0);
   const [editNotes, setEditNotes] = useState('');
@@ -24,6 +25,7 @@ export function BookDetailModal({ books, currentFocusBookId, palette, isDark }) 
     if (book) {
       setEditPage(book.current_page || 0);
       setEditTotal(book.pages_total || 0);
+      setEditWordsPerPage(book.words_per_page || 250);
       setEditDueDate(book.due_date || '');
       setEditRating(book.rating || 0);
       setEditNotes(book.notes || '');
@@ -46,6 +48,7 @@ export function BookDetailModal({ books, currentFocusBookId, palette, isDark }) 
     await bookService.updateBook(book.id, {
       current_page: newPage,
       pages_total: newTotal,
+      words_per_page: Math.max(50, Math.min(1000, parseInt(editWordsPerPage, 10) || 250)),
       due_date: editDueDate,
       rating: editRating || null,
       notes: editNotes,
@@ -225,6 +228,51 @@ export function BookDetailModal({ books, currentFocusBookId, palette, isDark }) 
                   onChange={(e) => setEditTotal(e.target.value)}
                   className={`${inputClass} font-mono`}
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Typography Density & OCR Calibration */}
+          <div
+            className={`p-3.5 rounded-xl border space-y-2 ${
+              isDark ? 'bg-[#1c1a24] border-white/10' : 'bg-[#fbf9f6] border-[#eae3d8]'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Sliders className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+                <span className="text-xs font-semibold">Typography Density</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => openPageScanner(book, (density) => setEditWordsPerPage(density))}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg border flex items-center gap-1.5 transition-all cursor-pointer ${
+                  isDark
+                    ? 'bg-[#201e29] hover:bg-[#2c2937] text-white border-white/15'
+                    : 'bg-white hover:bg-stone-50 text-stone-800 border-[#eae3d8] shadow-2xs'
+                }`}
+              >
+                <Camera className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+                <span>Scan a Page</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3 pt-1">
+              <div className="w-32">
+                <input
+                  type="number"
+                  min="50"
+                  max="1000"
+                  value={editWordsPerPage}
+                  onChange={(e) => setEditWordsPerPage(e.target.value)}
+                  className={`${inputClass} font-mono text-center font-bold`}
+                />
+              </div>
+              <div className="text-xs">
+                <span className="font-medium text-stone-400">words / page</span>
+                <span className={`block text-[11px] ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+                  ≈ {Math.round((parseInt(editWordsPerPage, 10) || 250) * (parseInt(editTotal, 10) || 0)).toLocaleString()} total words
+                </span>
               </div>
             </div>
           </div>
